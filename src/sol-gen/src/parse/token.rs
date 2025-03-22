@@ -40,4 +40,6 @@ pub enum TokenType {
     RBrace,  // }
     LBraket, // [
     RBracke, // ]
+    //
+    InvalidChar(char),
 }

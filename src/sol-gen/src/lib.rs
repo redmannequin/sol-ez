@@ -3,21 +3,24 @@ use std::{
     io::{Read, Write},
 };
 
+use anyhow::Context;
+use error::SolGenError;
 use parse::{Parser, lexer::Lexer};
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub mod ast;
+pub mod error;
 pub mod parse;
 
-pub fn generate(src_path: &str, out_path: &str) {
-    let mut fp = File::open(src_path).expect("failed to open file");
+pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
+    let mut fp = File::open(src_path)?;
     let mut src = String::new();
-    fp.read_to_string(&mut src).expect("failed to read file");
+    fp.read_to_string(&mut src)?;
 
     let lexer = Lexer::new(src.as_str());
     let parser = Parser::new(lexer);
-    let (account_defs, accounts_defs, contract_defs) = parser.parse();
+    let (account_defs, accounts_defs, contract_defs) = parser.parse()?;
 
     let mut code = TokenStream::new();
 
@@ -32,11 +35,11 @@ pub fn generate(src_path: &str, out_path: &str) {
     code.extend(accounts_defs.into_iter().map(ast::Accounts::generate));
     code.extend(contract_defs.into_iter().map(ast::Contract::generate));
 
-    let code_file = syn::parse2(code).expect("failed to parse code");
+    let code_file = syn::parse2(code).context("failed to parse token stream")?;
     let code_src = prettyplease::unparse(&code_file);
 
-    let mut out_fp = File::open(out_path).expect("failed to open file");
-    out_fp
-        .write_all(code_src.as_bytes())
-        .expect("failed to write to file");
+    let mut out_fp = File::open(out_path)?;
+    out_fp.write_all(code_src.as_bytes())?;
+
+    Ok(())
 }

@@ -3,8 +3,9 @@ use std::mem;
 use lexer::Lexer;
 use token::{Span, Token, TokenType};
 
-use crate::ast::{
-    Account, AccountField, Accounts, AccountsField, Contract, Identifer, Instruction, Type,
+use crate::{
+    ast::{Account, AccountField, Accounts, AccountsField, Contract, Identifer, Instruction, Type},
+    error::SolGenError,
 };
 
 pub mod lexer;
@@ -21,60 +22,65 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> (Vec<Account<'a>>, Vec<Accounts<'a>>, Vec<Contract<'a>>) {
+    pub fn parse(
+        mut self,
+    ) -> Result<(Vec<Account<'a>>, Vec<Accounts<'a>>, Vec<Contract<'a>>), SolGenError> {
         let mut account_defs = Vec::new();
         let mut accounts_defs = Vec::new();
         let mut contract_defs = Vec::new();
 
         while let Some(token) = self.lexer.curr() {
             match token.r#type {
-                TokenType::Account => account_defs.push(self.parse_account()),
-                TokenType::Accounts => accounts_defs.push(self.parse_accounts()),
-                TokenType::Contract => contract_defs.push(self.parse_contract()),
-                _ => panic!("expetect account, accounts, or contract"),
+                TokenType::Account => account_defs.push(self.parse_account()?),
+                TokenType::Accounts => accounts_defs.push(self.parse_accounts()?),
+                TokenType::Contract => contract_defs.push(self.parse_contract()?),
+                TokenType::InvalidChar(ch) => return Err(SolGenError::InvalidChar(ch)),
+                token_ty => {
+                    return Err(SolGenError::ExpectedToken(
+                        String::from("account, accounts, or contract"),
+                        format!("{:?}", token_ty),
+                    ));
+                }
             }
         }
 
-        (account_defs, accounts_defs, contract_defs)
+        Ok((account_defs, accounts_defs, contract_defs))
     }
 
-    fn parse_account(&mut self) -> Account<'a> {
-        let account = self.lexer.consume_if(TokenType::Account).expect("bug");
-        let name = self.parse_identifer();
-        let _l_brace = self.lexer.consume_if(TokenType::LBrace).expect("bug");
+    fn parse_account(&mut self) -> Result<Account<'a>, SolGenError> {
+        let account = self.lexer.consume_if(TokenType::Account)?;
+        let name = self.parse_identifer()?;
+        let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
 
         let mut fields = Vec::new();
         while let Some(token) = self.lexer.curr() {
             if token.r#type == TokenType::RBrace {
                 break;
             }
-            fields.push(self.parse_account_field());
+            fields.push(self.parse_account_field()?);
         }
 
-        let r_brace = self.lexer.consume_if(TokenType::RBrace).expect("bug");
+        let r_brace = self.lexer.consume_if(TokenType::RBrace)?;
 
-        Account {
+        Ok(Account {
             span: Span {
                 start: account.span.start,
                 end: r_brace.span.end,
             },
             name,
             fields,
-        }
+        })
     }
 
-    fn parse_account_field(&mut self) -> AccountField<'a> {
-        let name = self.parse_identifer();
-        let _colon = self.lexer.consume_if(TokenType::Colon).expect("bug");
-        let r#type = self.parse_type();
-        let _assign = self
-            .lexer
-            .consume_if(TokenType::Assign)
-            .expect(&format!("expected '=' found {:?}", self.lexer.curr()));
-        let number = self.parse_int();
-        let simi_colon = self.lexer.consume_if(TokenType::SimiColon).expect("bug");
+    fn parse_account_field(&mut self) -> Result<AccountField<'a>, SolGenError> {
+        let name = self.parse_identifer()?;
+        let _colon = self.lexer.consume_if(TokenType::Colon)?;
+        let r#type = self.parse_type()?;
+        let _assign = self.lexer.consume_if(TokenType::Assign)?;
+        let number = self.parse_int()?;
+        let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
-        AccountField {
+        Ok(AccountField {
             span: Span {
                 start: name.span.start,
                 end: simi_colon.span.end,
@@ -82,57 +88,71 @@ impl<'a> Parser<'a> {
             number,
             name: name,
             r#type,
-        }
+        })
     }
 
-    fn parse_type(&mut self) -> Type {
-        match self.lexer.bump().expect("bug").r#type {
-            TokenType::U8 => Type::U8,
-            TokenType::U64 => Type::U64,
-            TokenType::Bool => Type::Bool,
-            _ => panic!("bug"),
-        }
+    fn parse_type(&mut self) -> Result<Type, SolGenError> {
+        Ok(
+            match self
+                .lexer
+                .bump()
+                .ok_or_else(|| {
+                    SolGenError::ExpectedToken(format!("u8, u64, or bool"), format!("None"))
+                })?
+                .r#type
+            {
+                TokenType::U8 => Type::U8,
+                TokenType::U64 => Type::U64,
+                TokenType::Bool => Type::Bool,
+                token_ty => {
+                    return Err(SolGenError::ExpectedToken(
+                        format!("u8, u64, or bool"),
+                        format!("{:?}", token_ty),
+                    ));
+                }
+            },
+        )
     }
 
-    fn parse_accounts(&mut self) -> Accounts<'a> {
-        let accounts = self.lexer.consume_if(TokenType::Accounts).expect("bug");
-        let name = self.parse_identifer();
-        let _l_brace = self.lexer.consume_if(TokenType::LBrace).expect("bug");
+    fn parse_accounts(&mut self) -> Result<Accounts<'a>, SolGenError> {
+        let accounts = self.lexer.consume_if(TokenType::Accounts)?;
+        let name = self.parse_identifer()?;
+        let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
 
         let mut fields = Vec::new();
         while let Some(token) = self.lexer.curr() {
             if token.r#type == TokenType::RBrace {
                 break;
             }
-            fields.push(self.parse_accounts_field());
+            fields.push(self.parse_accounts_field()?);
         }
 
-        let r_brace = self.lexer.consume_if(TokenType::RBrace).expect("bug");
+        let r_brace = self.lexer.consume_if(TokenType::RBrace)?;
 
-        Accounts {
+        Ok(Accounts {
             span: Span {
                 start: accounts.span.start,
                 end: r_brace.span.end,
             },
             name,
             fields,
-        }
+        })
     }
 
-    fn parse_accounts_field(&mut self) -> AccountsField<'a> {
-        let mutable = self.lexer.consume_if(TokenType::Mut).is_some();
-        let init = self.lexer.consume_if(TokenType::Init).is_some();
+    fn parse_accounts_field(&mut self) -> Result<AccountsField<'a>, SolGenError> {
+        let mutable = self.lexer.consume_if(TokenType::Mut).is_ok();
+        let init = self.lexer.consume_if(TokenType::Init).is_ok();
 
         assert!(!(mutable & init));
 
-        let name = self.parse_identifer();
-        let _colon = self.lexer.consume_if(TokenType::Colon).expect("bug");
-        let account = self.parse_identifer();
-        let _assign = self.lexer.consume_if(TokenType::Assign).expect("bug");
-        let number = self.parse_int();
-        let simi_colon = self.lexer.consume_if(TokenType::SimiColon).expect("bug");
+        let name = self.parse_identifer()?;
+        let _colon = self.lexer.consume_if(TokenType::Colon)?;
+        let account = self.parse_identifer()?;
+        let _assign = self.lexer.consume_if(TokenType::Assign)?;
+        let number = self.parse_int()?;
+        let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
-        AccountsField {
+        Ok(AccountsField {
             span: Span {
                 start: name.span.start,
                 end: simi_colon.span.end,
@@ -142,45 +162,45 @@ impl<'a> Parser<'a> {
             account,
             init,
             mutable,
-        }
+        })
     }
 
-    fn parse_contract(&mut self) -> Contract<'a> {
-        let contract = self.lexer.consume_if(TokenType::Contract).expect("bug");
-        let name = self.parse_identifer();
-        let _l_brace = self.lexer.consume_if(TokenType::LBrace).expect("bug");
+    fn parse_contract(&mut self) -> Result<Contract<'a>, SolGenError> {
+        let contract = self.lexer.consume_if(TokenType::Contract)?;
+        let name = self.parse_identifer()?;
+        let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
 
         let mut instructions = Vec::new();
         while let Some(token) = self.lexer.curr() {
             if token.r#type == TokenType::RBrace {
                 break;
             }
-            instructions.push(self.parse_instruction());
+            instructions.push(self.parse_instruction()?);
         }
 
-        let r_brace = self.lexer.consume_if(TokenType::RBrace).expect("bug");
+        let r_brace = self.lexer.consume_if(TokenType::RBrace)?;
 
-        Contract {
+        Ok(Contract {
             span: Span {
                 start: contract.span.start,
                 end: r_brace.span.end,
             },
             name,
             instructions,
-        }
+        })
     }
 
-    fn parse_instruction(&mut self) -> Instruction<'a> {
-        let instruction = self.lexer.consume_if(TokenType::Instruction).expect("bug");
-        let name = self.parse_identifer();
-        let _l_param = self.lexer.consume_if(TokenType::LParam).expect("bug");
-        let accounts = self.parse_identifer();
-        let _r_param = self.lexer.consume_if(TokenType::RParam).expect("bug");
-        let _assign = self.lexer.consume_if(TokenType::Assign).expect("bug");
-        let number = self.parse_int();
-        let simi_colon = self.lexer.consume_if(TokenType::SimiColon).expect("bug");
+    fn parse_instruction(&mut self) -> Result<Instruction<'a>, SolGenError> {
+        let instruction = self.lexer.consume_if(TokenType::Instruction)?;
+        let name = self.parse_identifer()?;
+        let _l_param = self.lexer.consume_if(TokenType::LParam)?;
+        let accounts = self.parse_identifer()?;
+        let _r_param = self.lexer.consume_if(TokenType::RParam)?;
+        let _assign = self.lexer.consume_if(TokenType::Assign)?;
+        let number = self.parse_int()?;
+        let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
-        Instruction {
+        Ok(Instruction {
             span: Span {
                 start: instruction.span.start,
                 end: simi_colon.span.end,
@@ -188,23 +208,20 @@ impl<'a> Parser<'a> {
             number,
             name,
             accounts,
-        }
+        })
     }
 
-    fn parse_identifer(&mut self) -> Identifer<'a> {
-        let identifer = self
-            .lexer
-            .consume_if(TokenType::Identifer)
-            .expect(&format!("expected ident found {:?}", self.lexer.curr));
-        Identifer {
+    fn parse_identifer(&mut self) -> Result<Identifer<'a>, SolGenError> {
+        let identifer = self.lexer.consume_if(TokenType::Identifer)?;
+        Ok(Identifer {
             span: identifer.span,
             value: self.lexer.src_span(identifer.span),
-        }
+        })
     }
 
-    fn parse_int(&mut self) -> u8 {
-        let int = self.lexer.consume_if(TokenType::Intager).expect("bug");
-        self.lexer.src_span(int.span).parse().expect("bug")
+    fn parse_int(&mut self) -> Result<u8, SolGenError> {
+        let int = self.lexer.consume_if(TokenType::Intager)?;
+        Ok(self.lexer.src_span(int.span).parse()?)
     }
 }
 
@@ -235,12 +252,15 @@ impl<'a> TokenHandler<'a> {
         mem::replace(&mut self.next, self.lexer.next())
     }
 
-    pub fn consume_if(&mut self, r#type: TokenType) -> Option<Token> {
+    pub fn consume_if(&mut self, r#type: TokenType) -> Result<Token, SolGenError> {
         let token = self.curr.filter(|token| token.r#type == r#type);
         if token.is_some() {
             self.bump();
         }
-        token
+        token.ok_or(SolGenError::ExpectedToken(
+            format!("{:?}", r#type),
+            format!("{:?}", self.curr),
+        ))
     }
 
     pub fn src_span(&self, span: Span) -> &'a str {

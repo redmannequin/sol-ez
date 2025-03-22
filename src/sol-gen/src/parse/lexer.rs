@@ -32,7 +32,7 @@ impl<'a> Lexer<'a> {
                 } else if ch.is_ascii_digit() {
                     self.parse_integer()
                 } else {
-                    todo!("{}", ch)
+                    self.create_single_char_token(TokenType::InvalidChar(ch))
                 }
             }
         })
@@ -50,7 +50,7 @@ impl<'a> Lexer<'a> {
     fn parse_identifer(&mut self) -> Token {
         let s = self.src.pos;
         while let Some(c) = self.src.next() {
-            if !(c.is_ascii_alphanumeric() || c == '_') {
+            if !(c.is_ascii_alphabetic() || c == '_') {
                 break;
             }
         }
