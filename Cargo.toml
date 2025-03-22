@@ -1,7 +1,8 @@
 [workspace]
-members = [ "examples/counter","src/sol-ez", "src/sol-gen"]
+members = ["examples/counter", "src/sol-derive", "src/sol-ez", "src/sol-gen"]
 resolver = "3"
 
 [workspace.dependencies]
+sol-derive = { path = "src/sol-derive" }
 sol-ez = { path = "src/sol-ez" }
 sol-gen = { path = "src/sol-gen" }

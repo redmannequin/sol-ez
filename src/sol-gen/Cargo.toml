@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# local
+sol-derive = { workspace = true }
+
+# external
 anyhow = "1.0"
 convert_case = "0.8"
 prettyplease = "0.2"

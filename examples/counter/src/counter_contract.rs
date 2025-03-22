@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{account_info::AccountInfo, program_error::ProgramError};
-use sol_ez::account::*;
-#[derive(Debug, BorshSerialize, BorshDeserialize)]
+use sol_ez::{account::*, AccountRent};
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
 pub struct Payer {}
-#[derive(Debug, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
 pub struct SysProgram {}
-#[derive(Debug, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
 pub struct Count {
     pub data: u8,
 }
@@ -38,6 +38,22 @@ impl<'a> Update<'a> {
         Ok(Self {
             counter: Account::new_mut(
                 accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+            )?,
+        })
+    }
+}
+pub struct Close<'a> {
+    pub counter: Account<'a, Count, Mutable>,
+    pub payer: Account<'a, Payer, Mutable>,
+}
+impl<'a> Close<'a> {
+    pub fn load(accounts: &'a [AccountInfo<'a>]) -> Result<Self, ProgramError> {
+        Ok(Self {
+            counter: Account::new_mut(
+                accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+            )?,
+            payer: Account::new_mut(
+                accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             )?,
         })
     }
@@ -77,6 +93,13 @@ pub mod counter_contract {
                     };
                     T::update(ctx)
                 }
+                3u8 => {
+                    let ctx = sol_ez::Context {
+                        program_id,
+                        accounts: super::Close::load(accounts)?,
+                    };
+                    T::close(ctx)
+                }
                 _ => Err(ProgramError::InvalidInstructionData),
             }
         }
@@ -84,5 +107,6 @@ pub mod counter_contract {
     pub trait CounterContract {
         fn initialize(accounts: sol_ez::Context<super::Initialize>) -> ProgramResult;
         fn update(accounts: sol_ez::Context<super::Update>) -> ProgramResult;
+        fn close(accounts: sol_ez::Context<super::Close>) -> ProgramResult;
     }
 }

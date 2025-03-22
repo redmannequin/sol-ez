@@ -1,6 +1,6 @@
 use solana_program::pubkey::Pubkey;
 
-pub struct Context<'a, T> {
+pub struct Context<'a, A> {
     pub program_id: &'a Pubkey,
-    pub accounts: T,
+    pub accounts: A,
 }

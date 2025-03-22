@@ -21,7 +21,7 @@ impl<'a> Account<'a> {
         let name = quote::format_ident!("{}", self.name());
         let fields = self.fields.into_iter().map(AccountField::generate);
         quote! {
-            #[derive(Debug, BorshSerialize, BorshDeserialize)]
+            #[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
             pub struct #name {
                 #(#fields)*
             }
@@ -54,6 +54,8 @@ pub enum Type {
     Bool,
     U8,
     U64,
+    F32,
+    F64,
     Str(Str),
     Arr(Arr),
 }
@@ -64,8 +66,9 @@ impl Type {
             Type::Bool => syn::Ident::new("bool", proc_macro2::Span::call_site()),
             Type::U8 => syn::Ident::new("u8", proc_macro2::Span::call_site()),
             Type::U64 => syn::Ident::new("u64", proc_macro2::Span::call_site()),
-            Type::Str(_) => todo!(),
-            Type::Arr(_) => todo!(),
+            Type::F32 => syn::Ident::new("f32", proc_macro2::Span::call_site()),
+            Type::F64 => syn::Ident::new("f64", proc_macro2::Span::call_site()),
+            _ => todo!(),
         }
     }
 }

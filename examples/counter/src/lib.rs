@@ -1,5 +1,5 @@
 use counter_contract::{
-    Count, Initialize, Update,
+    Close, Count, Initialize, Update,
     counter_contract::{CounterContract, CounterDispatcher},
 };
 use sol_ez::{Context, Contract};
@@ -44,6 +44,11 @@ impl CounterContract for Counter {
 
         msg!("Counter incremented to: {}", counter.as_ref().data);
 
+        Ok(())
+    }
+
+    fn close(ctx: Context<Close>) -> ProgramResult {
+        ctx.accounts.counter.close(&ctx.accounts.payer)?;
         Ok(())
     }
 }

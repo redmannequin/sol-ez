@@ -16,7 +16,13 @@ accounts Update {
     mut counter: Count = 1;
 }
 
+accounts Close {
+    mut counter: Count =1;
+    mut payer: Payer = 2;
+}
+
 contract Counter {
     instruction initialize(Initialize) = 1;
     instruction update(Update) = 2;
+    instruction close(Close) = 3;
 }
