@@ -50,7 +50,7 @@ impl<'a> Lexer<'a> {
     fn parse_identifer(&mut self) -> Token {
         let s = self.src.pos;
         while let Some(c) = self.src.next() {
-            if !(c.is_ascii_alphabetic() || c == '_') {
+            if !(c.is_ascii_alphanumeric() || c == '_') {
                 break;
             }
         }

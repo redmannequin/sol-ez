@@ -1,13 +1,16 @@
 use std::marker::PhantomData;
 
+use _account_access_triat::{AccountRead, AccountWrite};
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo, program::invoke, program_error::ProgramError, pubkey::Pubkey,
     rent::Rent, system_instruction, sysvar::Sysvar,
 };
 
-pub trait AccountRead {}
-pub trait AccountWrite {}
+mod _account_access_triat {
+    pub trait AccountRead {}
+    pub trait AccountWrite {}
+}
 
 pub struct Init;
 pub struct Read;

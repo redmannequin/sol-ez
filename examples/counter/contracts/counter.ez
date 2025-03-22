@@ -1,0 +1,22 @@
+account Payer {}
+
+account SysProgram {}
+
+account Count {
+    data: u8 = 1;
+}
+
+accounts Initialize {
+    init counter: Count = 1;
+    mut payer: Payer = 2;
+    program: SysProgram = 3;
+}
+
+accounts Update {
+    mut counter: Count = 1;
+}
+
+contract Counter {
+    instruction initialize(Initialize) = 1;
+    instruction update(Update) = 2;
+}

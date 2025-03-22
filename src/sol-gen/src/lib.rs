@@ -29,7 +29,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
 
         use borsh::{BorshDeserialize, BorshSerialize};
         use solana_program::{account_info::AccountInfo, program_error::ProgramError};
-        use sol_ez::context::*;
+        use sol_ez::account::*;
     });
     code.extend(account_defs.into_iter().map(ast::Account::generate));
     code.extend(accounts_defs.into_iter().map(ast::Accounts::generate));
@@ -38,7 +38,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
     let code_file = syn::parse2(code).context("failed to parse token stream")?;
     let code_src = prettyplease::unparse(&code_file);
 
-    let mut out_fp = File::open(out_path)?;
+    let mut out_fp = File::create(out_path)?;
     out_fp.write_all(code_src.as_bytes())?;
 
     Ok(())

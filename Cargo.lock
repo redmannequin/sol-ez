@@ -264,6 +264,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "counter"
+version = "0.1.0"
+dependencies = [
+ "borsh 1.5.6",
+ "sol-ez",
+ "sol-gen",
+ "solana-program",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
