@@ -3,3 +3,5 @@ members = ["src/sol-ez", "src/sol-gen"]
 resolver = "3"
 
 [workspace.dependencies]
+sol-ez = { path = "src/sol-ez" }
+sol-gen = { path = "src/sol-gen" }

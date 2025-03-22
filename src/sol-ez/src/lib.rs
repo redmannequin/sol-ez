@@ -2,6 +2,7 @@ use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, pubke
 
 pub use context::Context;
 
+pub mod account;
 pub mod context;
 
 pub trait Contract {
