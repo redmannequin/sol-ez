@@ -1,6 +1,6 @@
-account Payer {}
 
 account SysProgram {}
+account Signer {}
 
 account Count {
     data: u8 = 1;
@@ -8,17 +8,18 @@ account Count {
 
 accounts Initialize {
     init counter: Count = 1;
-    mut payer: Payer = 2;
+    mut signer: Signer = 2;
     program: SysProgram = 3;
 }
 
 accounts Update {
     mut counter: Count = 1;
+    signer: Signer = 2;
 }
 
 accounts Close {
-    mut counter: Count =1;
-    mut payer: Payer = 2;
+    mut counter: Count = 1;
+    mut signer: Signer = 2;
 }
 
 contract Counter {

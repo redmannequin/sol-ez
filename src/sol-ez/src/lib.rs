@@ -3,6 +3,7 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+pub use account::{AccountData, DataSize};
 pub use context::Context;
 
 pub mod account;
@@ -24,24 +25,4 @@ pub trait Accounts: Sized {
     fn load(account_infos: &[AccountInfo]) -> Result<Self, ProgramError>;
 }
 
-pub trait AccountRent {
-    const SIZE: usize;
-}
-
-impl AccountRent for u8 {
-    const SIZE: usize = 1;
-}
-
-impl AccountRent for u64 {
-    const SIZE: usize = 8;
-}
-
-impl AccountRent for f32 {
-    const SIZE: usize = 4;
-}
-
-impl AccountRent for f64 {
-    const SIZE: usize = 8;
-}
-
-pub use sol_derive::AccountRent;
+pub use sol_derive::AccountData;

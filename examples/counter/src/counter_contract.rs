@@ -1,18 +1,18 @@
 use std::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{account_info::AccountInfo, program_error::ProgramError};
-use sol_ez::{account::*, AccountRent};
-#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
-pub struct Payer {}
-#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
+use sol_ez::{account::*, AccountData, DataSize};
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct SysProgram {}
-#[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
+pub struct Signer {}
+#[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
     pub data: u8,
 }
 pub struct Initialize<'a> {
     pub counter: Account<'a, PhantomData<Count>, Init>,
-    pub payer: Account<'a, Payer, Mutable>,
+    pub signer: Account<'a, Signer, Mutable>,
     pub program: Account<'a, SysProgram, Read>,
 }
 impl<'a> Initialize<'a> {
@@ -21,7 +21,7 @@ impl<'a> Initialize<'a> {
             counter: Account::new_init(
                 accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             ),
-            payer: Account::new_mut(
+            signer: Account::new_mut(
                 accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             )?,
             program: Account::new_read(
@@ -32,6 +32,7 @@ impl<'a> Initialize<'a> {
 }
 pub struct Update<'a> {
     pub counter: Account<'a, Count, Mutable>,
+    pub signer: Account<'a, Signer, Read>,
 }
 impl<'a> Update<'a> {
     pub fn load(accounts: &'a [AccountInfo<'a>]) -> Result<Self, ProgramError> {
@@ -39,12 +40,15 @@ impl<'a> Update<'a> {
             counter: Account::new_mut(
                 accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             )?,
+            signer: Account::new_read(
+                accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+            )?,
         })
     }
 }
 pub struct Close<'a> {
     pub counter: Account<'a, Count, Mutable>,
-    pub payer: Account<'a, Payer, Mutable>,
+    pub signer: Account<'a, Signer, Mutable>,
 }
 impl<'a> Close<'a> {
     pub fn load(accounts: &'a [AccountInfo<'a>]) -> Result<Self, ProgramError> {
@@ -52,7 +56,7 @@ impl<'a> Close<'a> {
             counter: Account::new_mut(
                 accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             )?,
-            payer: Account::new_mut(
+            signer: Account::new_mut(
                 accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
             )?,
         })

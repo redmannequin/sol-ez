@@ -23,15 +23,17 @@ pub struct Counter;
 
 impl CounterContract for Counter {
     fn initialize(ctx: Context<Initialize>) -> ProgramResult {
-        let payer = ctx.accounts.payer;
+        let signer = ctx.accounts.signer;
         let sys_program = ctx.accounts.program;
         let owner = ctx.program_id;
+
+        signer.verify_signer()?;
 
         let account = Count { data: 0 };
         let counter = ctx
             .accounts
             .counter
-            .init(account, &payer, &sys_program, owner)?;
+            .init(account, &signer, &sys_program, owner)?;
 
         msg!("Counter initialized with value: {}", counter.as_ref().data);
 
@@ -39,6 +41,7 @@ impl CounterContract for Counter {
     }
 
     fn update(mut ctx: Context<Update>) -> ProgramResult {
+        ctx.accounts.signer.verify_signer()?;
         ctx.accounts.counter.as_ref_mut().data += 1;
         let counter = ctx.accounts.counter.apply()?;
 
@@ -48,7 +51,8 @@ impl CounterContract for Counter {
     }
 
     fn close(ctx: Context<Close>) -> ProgramResult {
-        ctx.accounts.counter.close(&ctx.accounts.payer)?;
+        ctx.accounts.signer.verify_signer()?;
+        ctx.accounts.counter.close(&ctx.accounts.signer)?;
         Ok(())
     }
 }

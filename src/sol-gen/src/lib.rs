@@ -29,7 +29,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
 
         use borsh::{BorshDeserialize, BorshSerialize};
         use solana_program::{account_info::AccountInfo, program_error::ProgramError};
-        use sol_ez::{account::*, AccountRent};
+        use sol_ez::{account::*, AccountData, DataSize};
     });
     code.extend(account_defs.into_iter().map(ast::Account::generate));
     code.extend(accounts_defs.into_iter().map(ast::Accounts::generate));

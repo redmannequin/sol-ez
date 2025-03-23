@@ -21,7 +21,7 @@ impl<'a> Account<'a> {
         let name = quote::format_ident!("{}", self.name());
         let fields = self.fields.into_iter().map(AccountField::generate);
         quote! {
-            #[derive(Debug, BorshSerialize, BorshDeserialize, AccountRent)]
+            #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
             pub struct #name {
                 #(#fields)*
             }

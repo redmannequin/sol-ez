@@ -62,7 +62,9 @@ impl<'a> AccountsField<'a> {
                     pub #name: Account<'a, PhantomData<#ty>, Init>,
                 },
                 quote! {
-                    #name: Account::new_init(accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?),
+                    #name: Account::new_init(
+                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                    ),
                 },
             )
         } else if self.mutable {
@@ -71,7 +73,9 @@ impl<'a> AccountsField<'a> {
                     pub #name: Account<'a, #ty, Mutable>,
                 },
                 quote! {
-                    #name: Account::new_mut(accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?)?,
+                    #name: Account::new_mut(
+                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                    )?,
                 },
             )
         } else {
@@ -80,7 +84,9 @@ impl<'a> AccountsField<'a> {
                     pub #name: Account<'a, #ty, Read>,
                 },
                 quote! {
-                    #name: Account::new_read(accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?)?,
+                    #name: Account::new_read(
+                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                    )?,
                 },
             )
         }
