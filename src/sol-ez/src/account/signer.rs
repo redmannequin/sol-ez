@@ -2,7 +2,10 @@ use std::{cell::RefMut, marker::PhantomData};
 
 use solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 
-use crate::account::{AccountRead, AccountWrite, Mutable, Read};
+use crate::account_info::{
+    Mutable, Read,
+    account_access_triat::{AccountRead, AccountWrite},
+};
 
 pub struct Signer<'info, M> {
     key: &'info Pubkey,

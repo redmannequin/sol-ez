@@ -1,27 +1,8 @@
-use account_access_triat::{AccountRead, AccountWrite};
 pub use pda::{Account, AccountData};
 pub use signer::Signer;
 
 mod pda;
 mod signer;
-
-pub(crate) mod account_access_triat {
-    pub trait AccountRead {}
-    pub trait AccountWrite {}
-}
-
-/// Account Initalization Marker
-pub struct Init;
-
-/// Account Read Marker
-pub struct Read;
-
-/// Account Mutable Marker
-pub struct Mutable;
-
-impl AccountRead for Read {}
-impl AccountRead for Mutable {}
-impl AccountWrite for Mutable {}
 
 pub trait DataSize {
     const SIZE: usize;

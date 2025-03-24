@@ -28,8 +28,11 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
         use std::marker::PhantomData;
 
         use borsh::{BorshDeserialize, BorshSerialize};
-        use solana_program::{account_info::AccountInfo, program_error::ProgramError};
-        use sol_ez::{account::*, AccountData, DataSize};
+        use sol_ez::{account::*, account_info::*, AccountData, DataSize};
+
+        mod solana_program {
+            pub use solana_program::{program_error::ProgramError, account_info::AccountInfo};
+        }
     });
     code.extend(account_defs.into_iter().map(ast::Account::generate));
     code.extend(accounts_defs.into_iter().map(ast::Accounts::generate));

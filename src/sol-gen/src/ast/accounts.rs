@@ -27,7 +27,7 @@ impl<'a> Accounts<'a> {
             }
 
             impl<'a> #accounts_name<'a> {
-                pub fn load(accounts: &'a [AccountInfo<'a>]) -> Result<Self, ProgramError> {
+                pub fn load(accounts: &'a [solana_program::AccountInfo<'a>]) -> Result<Self, solana_program::ProgramError> {
                     Ok(Self {
                         #(#load_fields)*
                     })
@@ -63,7 +63,9 @@ impl<'a> AccountsField<'a> {
                 },
                 quote! {
                     #name: Account::new_init(
-                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                        AccountInfo::new_init(
+                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        )
                     ),
                 },
             )
@@ -73,8 +75,10 @@ impl<'a> AccountsField<'a> {
                     pub #name: Account<'a, #ty, Mutable>,
                 },
                 quote! {
-                    #name: Account::new_mut(
-                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                    #name: Account::new(
+                        AccountInfo::new_mut(
+                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        )?
                     )?,
                 },
             )
@@ -84,8 +88,10 @@ impl<'a> AccountsField<'a> {
                     pub #name: Account<'a, #ty, Read>,
                 },
                 quote! {
-                    #name: Account::new_read(
-                        accounts.get(#idx).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                    #name: Account::new(
+                        AccountInfo::new_read(
+                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        )
                     )?,
                 },
             )

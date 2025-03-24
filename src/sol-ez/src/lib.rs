@@ -7,6 +7,7 @@ pub use account::{AccountData, DataSize};
 pub use context::Context;
 
 pub mod account;
+pub mod account_info;
 pub mod context;
 
 pub trait Contract {
