@@ -1,6 +1,5 @@
-use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
-    pubkey::Pubkey,
+use pinocchio::{
+    ProgramResult, account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey,
 };
 
 pub use account::{AccountData, DataSize};
@@ -13,7 +12,7 @@ pub mod context;
 pub trait Contract {
     fn dispatch<'info>(
         program_id: &Pubkey,
-        accounts: &'info [AccountInfo<'info>],
+        accounts: &'info [AccountInfo],
         payload: &[u8],
     ) -> ProgramResult;
 }

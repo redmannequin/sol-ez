@@ -1,107 +1,97 @@
 use std::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use sol_ez::{account::*, account_info::*, AccountData, DataSize};
-mod solana_program {
-    pub use solana_program::{program_error::ProgramError, account_info::AccountInfo};
+mod pinocchio {
+    pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
 }
-#[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
-pub struct SysProgram {}
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Signer {}
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
     pub data: u8,
 }
-pub struct Initialize<'a> {
-    pub counter: Account<'a, PhantomData<Count>, Init>,
-    pub signer: Account<'a, Signer, Mutable>,
-    pub program: Account<'a, SysProgram, Read>,
+pub struct Initialize<'info> {
+    pub counter: Account<'info, PhantomData<Count>, Init>,
+    pub signer: Account<'info, Signer, Mutable>,
 }
-impl<'a> Initialize<'a> {
+impl<'info> Initialize<'info> {
     pub fn load(
-        accounts: &'a [solana_program::AccountInfo<'a>],
-    ) -> Result<Self, solana_program::ProgramError> {
+        accounts: &'info [pinocchio::AccountInfo],
+    ) -> Result<Self, pinocchio::ProgramError> {
         Ok(Self {
             counter: Account::new_init(
                 AccountInfo::new_init(
                     accounts
                         .get(0usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 ),
             ),
             signer: Account::new(
                 AccountInfo::new_mut(
                     accounts
                         .get(1usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
-            )?,
-            program: Account::new(
-                AccountInfo::new_read(
-                    accounts
-                        .get(2usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
-                ),
             )?,
         })
     }
 }
-pub struct Update<'a> {
-    pub counter: Account<'a, Count, Mutable>,
-    pub signer: Account<'a, Signer, Read>,
+pub struct Update<'info> {
+    pub counter: Account<'info, Count, Mutable>,
+    pub signer: Account<'info, Signer, Read>,
 }
-impl<'a> Update<'a> {
+impl<'info> Update<'info> {
     pub fn load(
-        accounts: &'a [solana_program::AccountInfo<'a>],
-    ) -> Result<Self, solana_program::ProgramError> {
+        accounts: &'info [pinocchio::AccountInfo],
+    ) -> Result<Self, pinocchio::ProgramError> {
         Ok(Self {
             counter: Account::new(
                 AccountInfo::new_mut(
                     accounts
                         .get(0usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             )?,
             signer: Account::new(
                 AccountInfo::new_read(
                     accounts
                         .get(1usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 ),
             )?,
         })
     }
 }
-pub struct Close<'a> {
-    pub counter: Account<'a, Count, Mutable>,
-    pub signer: Account<'a, Signer, Mutable>,
+pub struct Close<'info> {
+    pub counter: Account<'info, Count, Mutable>,
+    pub signer: Account<'info, Signer, Mutable>,
 }
-impl<'a> Close<'a> {
+impl<'info> Close<'info> {
     pub fn load(
-        accounts: &'a [solana_program::AccountInfo<'a>],
-    ) -> Result<Self, solana_program::ProgramError> {
+        accounts: &'info [pinocchio::AccountInfo],
+    ) -> Result<Self, pinocchio::ProgramError> {
         Ok(Self {
             counter: Account::new(
                 AccountInfo::new_mut(
                     accounts
                         .get(0usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             )?,
             signer: Account::new(
                 AccountInfo::new_mut(
                     accounts
                         .get(1usize)
-                        .ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             )?,
         })
     }
 }
 pub mod counter_contract {
-    use solana_program::{
-        account_info::AccountInfo, entrypoint::ProgramResult,
-        program_error::ProgramError, pubkey::Pubkey,
+    use pinocchio::{
+        account_info::AccountInfo, ProgramResult, program_error::ProgramError,
+        pubkey::Pubkey,
     };
     pub struct CounterDispatcher<T> {
         inner: std::marker::PhantomData<T>,
@@ -112,7 +102,7 @@ pub mod counter_contract {
     {
         fn dispatch<'info>(
             program_id: &Pubkey,
-            accounts: &'info [AccountInfo<'info>],
+            accounts: &'info [AccountInfo],
             payload: &[u8],
         ) -> ProgramResult {
             let (instruction, _rest) = payload

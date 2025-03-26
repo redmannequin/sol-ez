@@ -2,9 +2,11 @@ use std::marker::PhantomData;
 
 use account_access_triat::{AccountRead, AccountWrite};
 
-mod solana_program {
-    pub use solana_program::{
-        account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey,
+mod pinocchio {
+    pub use pinocchio::{
+        account_info::{AccountInfo, Ref, RefMut},
+        program_error::ProgramError,
+        pubkey::Pubkey,
     };
 }
 
@@ -28,46 +30,46 @@ impl AccountWrite for Init {}
 impl AccountWrite for Mutable {}
 
 pub struct AccountInfo<'info, M> {
-    inner: &'info solana_program::AccountInfo<'info>,
+    inner: &'info pinocchio::AccountInfo,
     _marker: PhantomData<M>,
 }
 
 impl<'info, M> AccountInfo<'info, M> {
-    fn new(account_info: &'info solana_program::AccountInfo<'info>) -> Self {
+    fn new(account_info: &'info pinocchio::AccountInfo) -> Self {
         AccountInfo {
             inner: account_info,
             _marker: PhantomData,
         }
     }
 
-    pub fn raw_account_info(&self) -> &solana_program::AccountInfo<'info> {
+    pub fn raw_account_info(&self) -> &pinocchio::AccountInfo {
         self.inner
     }
 
-    pub fn key(&self) -> &solana_program::Pubkey {
-        self.inner.key
+    pub fn key(&self) -> &pinocchio::Pubkey {
+        self.inner.key()
     }
 
-    pub fn owner(&self) -> &solana_program::Pubkey {
-        self.inner.owner
+    pub fn owner(&self, key: &pinocchio::Pubkey) -> bool {
+        self.inner.is_owned_by(key)
     }
 
     pub fn is_signer(&self) -> bool {
-        self.inner.is_signer
+        self.inner.is_signer()
     }
 
-    pub fn data(&self) -> std::cell::Ref<&mut [u8]>
+    pub fn data(&self) -> Result<pinocchio::Ref<[u8]>, pinocchio::ProgramError>
     where
         M: AccountRead,
     {
-        self.inner.data.borrow()
+        self.inner.try_borrow_data()
     }
 
-    pub fn data_mut(&self) -> std::cell::RefMut<'_, &'info mut [u8]>
+    pub fn data_mut(&self) -> Result<pinocchio::RefMut<[u8]>, pinocchio::ProgramError>
     where
         M: AccountWrite,
     {
-        self.inner.data.borrow_mut()
+        self.inner.try_borrow_mut_data()
     }
 
     pub fn data_is_empty(&self) -> bool {
@@ -78,24 +80,24 @@ impl<'info, M> AccountInfo<'info, M> {
     where
         M: AccountRead,
     {
-        **self.inner.lamports.borrow()
+        self.inner.lamports()
     }
 
-    pub fn lamports_mut(&self) -> std::cell::RefMut<&'info mut u64>
+    pub fn lamports_mut(&mut self) -> Result<pinocchio::RefMut<u64>, pinocchio::ProgramError>
     where
         M: AccountWrite,
     {
-        self.inner.lamports.borrow_mut()
+        self.inner.try_borrow_mut_lamports()
     }
 
-    pub fn assign(&self, owner: &solana_program::Pubkey)
+    pub unsafe fn assign(&self, owner: &pinocchio::Pubkey)
     where
         M: AccountWrite,
     {
-        self.inner.assign(owner);
+        unsafe { self.inner.assign(owner) };
     }
 
-    pub fn realloc(&self, len: usize, zero_init: bool) -> Result<(), solana_program::ProgramError>
+    pub fn realloc(&self, len: usize, zero_init: bool) -> Result<(), pinocchio::ProgramError>
     where
         M: AccountWrite,
     {
@@ -104,23 +106,23 @@ impl<'info, M> AccountInfo<'info, M> {
 }
 
 impl<'info> AccountInfo<'info, Init> {
-    pub fn new_init(account_info: &'info solana_program::AccountInfo<'info>) -> Self {
+    pub fn new_init(account_info: &'info pinocchio::AccountInfo) -> Self {
         Self::new(account_info)
     }
 }
 
 impl<'info> AccountInfo<'info, Read> {
-    pub fn new_read(account_info: &'info solana_program::AccountInfo<'info>) -> Self {
+    pub fn new_read(account_info: &'info pinocchio::AccountInfo) -> Self {
         Self::new(account_info)
     }
 }
 
 impl<'info> AccountInfo<'info, Mutable> {
     pub fn new_mut(
-        account_info: &'info solana_program::AccountInfo<'info>,
-    ) -> Result<Self, solana_program::ProgramError> {
-        if !account_info.is_writable {
-            return Err(solana_program::ProgramError::Immutable);
+        account_info: &'info pinocchio::AccountInfo,
+    ) -> Result<Self, pinocchio::ProgramError> {
+        if !account_info.is_writable() {
+            return Err(pinocchio::ProgramError::Immutable);
         }
         Ok(Self::new(account_info))
     }

@@ -30,7 +30,7 @@ impl<'a> Contract<'a> {
             .unzip();
         quote! {
             pub mod #contract_mod_name {
-                use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError, pubkey::Pubkey};
+                use pinocchio::{account_info::AccountInfo, ProgramResult, program_error::ProgramError, pubkey::Pubkey};
 
                 pub struct #contract_dispatcher_name<T> {
                     inner: std::marker::PhantomData<T>
@@ -41,7 +41,7 @@ impl<'a> Contract<'a> {
                 where
                     T: #contract_trait_name
                 {
-                    fn dispatch<'info>(program_id: &Pubkey, accounts: &'info [AccountInfo<'info>], payload: &[u8]) -> ProgramResult {
+                    fn dispatch<'info>(program_id: &Pubkey, accounts: &'info [AccountInfo], payload: &[u8]) -> ProgramResult {
                         let (instruction, _rest) = payload.split_first().ok_or(ProgramError::InvalidInstructionData)?;
 
                         match instruction {

@@ -1,6 +1,10 @@
-use std::{cell::RefMut, marker::PhantomData};
+use std::marker::PhantomData;
 
-use solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
+use pinocchio::{
+    account_info::{AccountInfo, RefMut},
+    program_error::ProgramError,
+    pubkey::Pubkey,
+};
 
 use crate::account_info::{
     Mutable, Read,
@@ -9,17 +13,17 @@ use crate::account_info::{
 
 pub struct Signer<'info, M> {
     key: &'info Pubkey,
-    account_info: AccountInfo<'info>,
+    account_info: &'info AccountInfo,
     _mode: PhantomData<M>,
 }
 
 impl<'info, M> Signer<'info, M> {
-    fn new(account_info: AccountInfo<'info>) -> Result<Self, ProgramError> {
-        if !account_info.is_signer {
+    fn new(account_info: &'info AccountInfo) -> Result<Self, ProgramError> {
+        if !account_info.is_signer() {
             return Err(ProgramError::MissingRequiredSignature);
         }
         Ok(Signer {
-            key: account_info.key,
+            key: account_info.key(),
             account_info,
             _mode: PhantomData,
         })
@@ -39,23 +43,23 @@ impl<'info, M> Signer<'info, M> {
         self.account_info.lamports()
     }
 
-    pub fn lamports_mut(&self) -> RefMut<'info, &mut u64>
+    pub fn lamports_mut(&self) -> Result<RefMut<u64>, ProgramError>
     where
         M: AccountWrite,
     {
-        self.account_info.lamports.borrow_mut()
+        self.account_info.try_borrow_mut_lamports()
     }
 }
 
 impl<'info> Signer<'info, Read> {
-    pub fn new_read(account_info: AccountInfo<'info>) -> Result<Self, ProgramError> {
+    pub fn new_read(account_info: &'info AccountInfo) -> Result<Self, ProgramError> {
         Self::new(account_info)
     }
 }
 
 impl<'info> Signer<'info, Mutable> {
-    pub fn new_mut(account_info: AccountInfo<'info>) -> Result<Self, ProgramError> {
-        if !account_info.is_writable {
+    pub fn new_mut(account_info: &'info AccountInfo) -> Result<Self, ProgramError> {
+        if !account_info.is_writable() {
             return Err(ProgramError::Immutable);
         }
         Self::new(account_info)

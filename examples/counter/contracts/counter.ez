@@ -1,5 +1,4 @@
 
-account SysProgram {}
 account Signer {}
 
 account Count {
@@ -9,7 +8,6 @@ account Count {
 accounts Initialize {
     init counter: Count = 1;
     mut signer: Signer = 2;
-    program: SysProgram = 3;
 }
 
 accounts Update {

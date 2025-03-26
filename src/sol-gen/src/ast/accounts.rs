@@ -22,12 +22,12 @@ impl<'a> Accounts<'a> {
         let (struct_fields, load_fields): (Vec<_>, Vec<_>) =
             self.fields.into_iter().map(AccountsField::generate).unzip();
         quote! {
-            pub struct #accounts_name<'a> {
+            pub struct #accounts_name<'info> {
                 #(#struct_fields)*
             }
 
-            impl<'a> #accounts_name<'a> {
-                pub fn load(accounts: &'a [solana_program::AccountInfo<'a>]) -> Result<Self, solana_program::ProgramError> {
+            impl<'info> #accounts_name<'info> {
+                pub fn load(accounts: &'info [pinocchio::AccountInfo]) -> Result<Self, pinocchio::ProgramError> {
                     Ok(Self {
                         #(#load_fields)*
                     })
@@ -59,12 +59,12 @@ impl<'a> AccountsField<'a> {
         if self.init {
             (
                 quote! {
-                    pub #name: Account<'a, PhantomData<#ty>, Init>,
+                    pub #name: Account<'info, PhantomData<#ty>, Init>,
                 },
                 quote! {
                     #name: Account::new_init(
                         AccountInfo::new_init(
-                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                            accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                         )
                     ),
                 },
@@ -72,12 +72,12 @@ impl<'a> AccountsField<'a> {
         } else if self.mutable {
             (
                 quote! {
-                    pub #name: Account<'a, #ty, Mutable>,
+                    pub #name: Account<'info, #ty, Mutable>,
                 },
                 quote! {
                     #name: Account::new(
                         AccountInfo::new_mut(
-                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                            accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                         )?
                     )?,
                 },
@@ -85,12 +85,12 @@ impl<'a> AccountsField<'a> {
         } else {
             (
                 quote! {
-                    pub #name: Account<'a, #ty, Read>,
+                    pub #name: Account<'info, #ty, Read>,
                 },
                 quote! {
                     #name: Account::new(
                         AccountInfo::new_read(
-                            accounts.get(#idx).ok_or(solana_program::ProgramError::NotEnoughAccountKeys)?,
+                            accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                         )
                     )?,
                 },

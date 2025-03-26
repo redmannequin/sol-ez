@@ -1,4 +1,4 @@
-use solana_program::pubkey::Pubkey;
+use pinocchio::pubkey::Pubkey;
 
 pub struct Context<'a, A> {
     pub program_id: &'a Pubkey,
