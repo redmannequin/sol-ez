@@ -3,6 +3,12 @@ members = ["examples/counter", "src/sol-derive", "src/sol-ez", "src/sol-gen"]
 resolver = "3"
 
 [workspace.dependencies]
+# local
 sol-derive = { path = "src/sol-derive" }
 sol-ez = { path = "src/sol-ez" }
 sol-gen = { path = "src/sol-gen" }
+
+# external
+borsh = "1.5"
+pinocchio = "0.8"
+pinocchio-system = "0.2"

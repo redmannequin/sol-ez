@@ -8,6 +8,6 @@ edition = "2024"
 sol-derive = { workspace = true }
 
 # external
-borsh = "1.5"
-pinocchio = "0.8"
-pinocchio-system = "0.2"
+borsh = { workspace = true }
+pinocchio = { workspace = true }
+pinocchio-system = { workspace = true }
