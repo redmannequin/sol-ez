@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use account_access_triat::{AccountRead, AccountWrite};
 

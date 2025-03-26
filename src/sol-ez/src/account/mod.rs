@@ -8,13 +8,6 @@ pub trait DataSize {
     const SIZE: usize;
 }
 
-impl<T> DataSize for Box<T>
-where
-    T: DataSize,
-{
-    const SIZE: usize = T::SIZE;
-}
-
 macro_rules! impl_data_size {
     ($ty:ty => $size:literal) => {
         impl DataSize for $ty {

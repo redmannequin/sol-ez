@@ -30,10 +30,12 @@ impl<'a> Contract<'a> {
             .unzip();
         quote! {
             pub mod #contract_mod_name {
+                use core::marker::PhantomData;
+
                 use pinocchio::{account_info::AccountInfo, ProgramResult, program_error::ProgramError, pubkey::Pubkey};
 
                 pub struct #contract_dispatcher_name<T> {
-                    inner: std::marker::PhantomData<T>
+                    inner: PhantomData<T>
                 }
 
 

@@ -25,7 +25,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
     let mut code = TokenStream::new();
 
     code.extend(quote! {
-        use std::marker::PhantomData;
+        use core::marker::PhantomData;
 
         use borsh::{BorshDeserialize, BorshSerialize};
         use sol_ez::{account::*, account_info::*, AccountData, DataSize};

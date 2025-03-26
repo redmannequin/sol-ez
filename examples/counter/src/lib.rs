@@ -1,3 +1,4 @@
+#![no_std]
 use counter_contract::{
     Close, Count, Initialize, Update,
     counter_contract::{CounterContract, CounterDispatcher},

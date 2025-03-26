@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use sol_ez::{account::*, account_info::*, AccountData, DataSize};
 mod pinocchio {
@@ -89,12 +89,13 @@ impl<'info> Close<'info> {
     }
 }
 pub mod counter_contract {
+    use core::marker::PhantomData;
     use pinocchio::{
         account_info::AccountInfo, ProgramResult, program_error::ProgramError,
         pubkey::Pubkey,
     };
     pub struct CounterDispatcher<T> {
-        inner: std::marker::PhantomData<T>,
+        inner: PhantomData<T>,
     }
     impl<T> sol_ez::Contract for CounterDispatcher<T>
     where
