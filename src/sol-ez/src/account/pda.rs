@@ -44,8 +44,8 @@ pub trait AccountData {
 }
 
 pub struct Account<'info, T, P> {
-    inner: T,
-    account_info: AccountInfo<'info, P>,
+    pub(crate) inner: T,
+    pub(crate) account_info: AccountInfo<'info, P>,
 }
 
 impl<'info, T, P> Account<'info, T, P> {
@@ -76,12 +76,12 @@ impl<'info, T, P> Account<'info, T, P> {
     where
         P: AccountWrite,
     {
-        *self.account_info.lamports_mut()? = lamports;
-        Ok(())
+        self.account_info.set_lamports(lamports)
     }
 
     pub fn as_ref(&self) -> &T
     where
+        T: AccountData,
         P: AccountRead,
     {
         &self.inner
@@ -89,6 +89,7 @@ impl<'info, T, P> Account<'info, T, P> {
 
     pub fn as_ref_mut(&mut self) -> &mut T
     where
+        T: AccountData,
         P: AccountWrite,
     {
         &mut self.inner
@@ -117,15 +118,10 @@ impl<'info, T, P> Account<'info, T, P> {
 
     pub fn apply(self) -> Result<Account<'info, T, Read>, ProgramError>
     where
-        T: BorshSerialize,
+        T: AccountData + BorshSerialize,
         P: AccountWrite,
     {
-        {
-            let mut account_data = &mut self.account_info.data_mut()?[..];
-            self.inner
-                .serialize(&mut account_data)
-                .map_err(|_err| ProgramError::BorshIoError)?;
-        }
+        AccountData::serialize(&self.inner, &self.account_info)?;
         Ok(Account {
             inner: self.inner,
             account_info: self.account_info.to_read(),
@@ -137,16 +133,10 @@ impl<'info, T, P> Account<'info, T, P> {
         P: AccountWrite + AccountRead,
         DP: AccountWrite + AccountRead,
     {
-        let dest_starting_lamports = signer.account_info.lamports();
-        signer.set_lamports(
-            dest_starting_lamports
-                .checked_add(self.lamports())
-                .ok_or(ProgramError::ArithmeticOverflow)?,
-        )?;
-        self.set_lamports(0)?;
+        let lamports = self.account_info.zero_out_lamports()?;
+        signer.account_info.add_lamports(lamports)?;
         self.account_info.raw_account_info().realloc(0, true)?;
         self.account_info.raw_account_info().close()?;
-
         Ok(())
     }
 }

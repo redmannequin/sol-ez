@@ -90,6 +90,47 @@ impl<'info, M> AccountInfo<'info, M> {
         self.inner.try_borrow_mut_lamports()
     }
 
+    pub fn set_lamports(&mut self, lamports: u64) -> Result<(), pinocchio::ProgramError>
+    where
+        M: AccountWrite,
+    {
+        *self.inner.try_borrow_mut_lamports()? = lamports;
+        Ok(())
+    }
+
+    pub fn add_lamports(&mut self, lamports: u64) -> Result<(), pinocchio::ProgramError>
+    where
+        M: AccountWrite,
+    {
+        self.set_lamports(
+            self.inner
+                .lamports()
+                .checked_add(lamports)
+                .ok_or(pinocchio::ProgramError::ArithmeticOverflow)?,
+        )
+    }
+
+    pub fn sub_lamports(&mut self, lamports: u64) -> Result<(), pinocchio::ProgramError>
+    where
+        M: AccountWrite,
+    {
+        self.set_lamports(
+            self.inner
+                .lamports()
+                .checked_sub(lamports)
+                .ok_or(pinocchio::ProgramError::ArithmeticOverflow)?,
+        )
+    }
+
+    pub fn zero_out_lamports(&mut self) -> Result<u64, pinocchio::ProgramError>
+    where
+        M: AccountWrite,
+    {
+        let lamports = self.inner.lamports();
+        self.set_lamports(0)?;
+        Ok(lamports)
+    }
+
     pub unsafe fn assign(&self, owner: &pinocchio::Pubkey)
     where
         M: AccountWrite,
