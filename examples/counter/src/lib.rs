@@ -21,13 +21,13 @@ pub struct Counter;
 
 impl CounterContract for Counter {
     fn initialize(ctx: Context<Initialize>) -> ProgramResult {
-        let signer = ctx.accounts.signer;
+        let mut signer = ctx.accounts.signer;
         let owner = ctx.program_id;
 
         signer.verify_signer()?;
 
         let account = Count { data: 0 };
-        let counter = ctx.accounts.counter.init(account, &signer, owner)?;
+        let counter = ctx.accounts.counter.init(account, &mut signer, owner)?;
 
         log!("Counter initialized with value: {}", counter.as_ref().data);
 

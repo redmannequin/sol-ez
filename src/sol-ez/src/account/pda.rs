@@ -13,6 +13,8 @@ use crate::account_info::{
     account_access_triat::{AccountRead, AccountWrite},
 };
 
+use super::Account;
+
 pub trait AccountData {
     const SIZE: usize;
     const DISCRIMINATOR: [u8; 8];
@@ -22,7 +24,7 @@ pub trait AccountData {
         Self: BorshDeserialize,
         M: AccountRead,
     {
-        let bytes = account_info.data()?;
+        let bytes = account_info.data();
         let (discriminator, data) = bytes.split_at(8);
         if discriminator != Self::DISCRIMINATOR {
             return Err(ProgramError::InvalidAccountData);
@@ -30,12 +32,15 @@ pub trait AccountData {
         Ok(Self::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?)
     }
 
-    fn serialize<'info, M>(&self, account_info: &AccountInfo<'info, M>) -> Result<(), ProgramError>
+    fn serialize<'info, M>(
+        &self,
+        account_info: &mut AccountInfo<'info, M>,
+    ) -> Result<(), ProgramError>
     where
         Self: BorshSerialize,
         M: AccountWrite,
     {
-        let account_data = &mut account_info.data_mut()?[..];
+        let account_data = &mut account_info.data_mut()[..];
         let (discriminator, mut data) = account_data.split_at_mut(8);
         discriminator.copy_from_slice(&Self::DISCRIMINATOR);
         BorshSerialize::serialize(&self, &mut data).map_err(|_err| ProgramError::BorshIoError)?;
@@ -43,15 +48,13 @@ pub trait AccountData {
     }
 }
 
-pub struct Account<'info, T, P> {
-    pub(crate) inner: T,
-    pub(crate) account_info: AccountInfo<'info, P>,
-}
-
-impl<'info, T, P> Account<'info, T, P> {
+impl<'info, T, P> Account<'info, T, P>
+where
+    T: AccountData,
+{
     pub fn new(account_info: AccountInfo<'info, P>) -> Result<Self, ProgramError>
     where
-        T: AccountData + BorshDeserialize,
+        T: BorshDeserialize,
         P: AccountRead + 'info,
     {
         let inner = { <T as AccountData>::deserialize(&account_info)? };
@@ -61,27 +64,8 @@ impl<'info, T, P> Account<'info, T, P> {
         })
     }
 
-    pub fn key(&self) -> &Pubkey {
-        self.account_info.key()
-    }
-
-    pub fn lamports(&self) -> u64
-    where
-        P: AccountRead,
-    {
-        self.account_info.lamports()
-    }
-
-    pub fn set_lamports(&mut self, lamports: u64) -> Result<(), ProgramError>
-    where
-        P: AccountWrite,
-    {
-        self.account_info.set_lamports(lamports)
-    }
-
     pub fn as_ref(&self) -> &T
     where
-        T: AccountData,
         P: AccountRead,
     {
         &self.inner
@@ -89,59 +73,39 @@ impl<'info, T, P> Account<'info, T, P> {
 
     pub fn as_ref_mut(&mut self) -> &mut T
     where
-        T: AccountData,
         P: AccountWrite,
     {
         &mut self.inner
     }
 
-    pub fn account_info(&self) -> &AccountInfo<'info, P>
+    pub fn apply(mut self) -> Result<Account<'info, T, Read>, ProgramError>
     where
+        T: BorshSerialize,
         P: AccountWrite,
     {
-        &self.account_info
-    }
-
-    pub fn account_info_mut(&mut self) -> &AccountInfo<'info, P>
-    where
-        P: AccountWrite,
-    {
-        &self.account_info
-    }
-
-    pub fn verify_signer(&self) -> Result<(), ProgramError> {
-        if !self.account_info.is_signer() {
-            return Err(ProgramError::MissingRequiredSignature);
-        }
-        Ok(())
-    }
-
-    pub fn apply(self) -> Result<Account<'info, T, Read>, ProgramError>
-    where
-        T: AccountData + BorshSerialize,
-        P: AccountWrite,
-    {
-        AccountData::serialize(&self.inner, &self.account_info)?;
+        AccountData::serialize(&self.inner, &mut self.account_info)?;
         Ok(Account {
             inner: self.inner,
             account_info: self.account_info.to_read(),
         })
     }
 
-    pub fn close<D, DP>(mut self, signer: &mut Account<'info, D, DP>) -> Result<(), ProgramError>
+    pub fn close<D, DP>(self, signer: &mut Account<'info, D, DP>) -> Result<(), ProgramError>
     where
         P: AccountWrite + AccountRead,
         DP: AccountWrite + AccountRead,
     {
-        let lamports = self.account_info.zero_out_lamports()?;
+        let lamports = self.account_info.lamports();
         signer.account_info.add_lamports(lamports)?;
-        self.account_info.raw_account_info().realloc(0, true)?;
-        self.account_info.raw_account_info().close()?;
+        self.account_info.close();
         Ok(())
     }
 }
 
-impl<'info, T> Account<'info, PhantomData<T>, Init> {
+impl<'info, T> Account<'info, PhantomData<T>, Init>
+where
+    T: AccountData,
+{
     pub fn new_init(account_info: AccountInfo<'info, Init>) -> Self
     where
         T: AccountData,
@@ -153,41 +117,45 @@ impl<'info, T> Account<'info, PhantomData<T>, Init> {
     }
 
     pub fn init<P, PA>(
-        self,
+        mut self,
         account: T,
-        payer: &Account<'info, P, PA>,
+        payer: &mut Account<'info, P, PA>,
         owner: &Pubkey,
     ) -> Result<Account<'info, T, Read>, ProgramError>
     where
-        T: AccountData + BorshSerialize,
+        T: BorshSerialize,
         PA: AccountWrite,
     {
-        if !self.account_info.data_is_empty() {
-            return Err(ProgramError::AccountAlreadyInitialized);
-        }
+        self.account_info.while_released(|account_info| {
+            if !account_info.data_is_empty() {
+                return Err(ProgramError::AccountAlreadyInitialized);
+            }
 
-        // TODO: set seed
-        let seed = b"todo";
-        let bump_seepd = &[255];
-        let pda = pubkey::create_program_address(&[seed, bump_seepd], owner)?;
+            // TODO: set seed
+            let seed = b"todo";
+            let bump_seepd = &[255];
+            let pda = pubkey::create_program_address(&[seed, bump_seepd], owner)?;
 
-        if *self.account_info.key() != pda {
-            return Err(ProgramError::InvalidAccountData);
-        }
+            if *account_info.key() != pda {
+                return Err(ProgramError::InvalidAccountData);
+            }
 
-        let rent = Rent::get()?;
-        let required_lamports = rent.minimum_balance(T::SIZE);
+            let rent = Rent::get()?;
+            let required_lamports = rent.minimum_balance(T::SIZE);
 
-        CreateAccount {
-            from: payer.account_info.raw_account_info(),
-            to: self.account_info.raw_account_info(),
-            lamports: required_lamports,
-            space: T::SIZE as u64,
-            owner,
-        }
-        .invoke()?;
+            payer.account_info.while_released(|payer| {
+                CreateAccount {
+                    from: payer,
+                    to: account_info,
+                    lamports: required_lamports,
+                    space: T::SIZE as u64,
+                    owner,
+                }
+                .invoke()
+            })
+        })?;
 
-        AccountData::serialize(&account, &self.account_info)?;
+        AccountData::serialize(&account, &mut self.account_info)?;
 
         Ok(Account {
             inner: account,

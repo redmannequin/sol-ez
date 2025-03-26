@@ -1,11 +1,67 @@
-pub use pda::{Account, AccountData};
+pub use pda::AccountData;
+use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
 pub use signer::Signer;
+
+use crate::account_info::{
+    AccountInfo,
+    account_access_triat::{AccountRead, AccountWrite},
+};
 
 mod pda;
 mod signer;
 
 pub trait DataSize {
     const SIZE: usize;
+}
+
+pub struct Account<'info, T, P> {
+    pub(crate) inner: T,
+    pub(crate) account_info: AccountInfo<'info, P>,
+}
+
+impl<'info, T, P> Account<'info, T, P> {
+    pub fn key(&self) -> &Pubkey {
+        self.account_info.key()
+    }
+
+    pub fn owner(&self) -> &Pubkey {
+        self.account_info.owner()
+    }
+
+    pub fn lamports(&self) -> u64
+    where
+        P: AccountRead,
+    {
+        self.account_info.lamports()
+    }
+
+    pub fn set_lamports(&mut self, lamports: u64)
+    where
+        P: AccountWrite,
+    {
+        self.account_info.set_lamports(lamports)
+    }
+
+    pub fn account_info(&self) -> &AccountInfo<'info, P>
+    where
+        P: AccountWrite,
+    {
+        &self.account_info
+    }
+
+    pub fn account_info_mut(&mut self) -> &mut AccountInfo<'info, P>
+    where
+        P: AccountWrite,
+    {
+        &mut self.account_info
+    }
+
+    pub fn verify_signer(&self) -> Result<(), ProgramError> {
+        if !self.account_info.is_signer() {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+        Ok(())
+    }
 }
 
 macro_rules! impl_data_size {

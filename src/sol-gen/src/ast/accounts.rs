@@ -65,7 +65,7 @@ impl<'a> AccountsField<'a> {
                     #name: Account::new_init(
                         AccountInfo::new_init(
                             accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                        )
+                        )?
                     ),
                 },
             )
@@ -91,7 +91,7 @@ impl<'a> AccountsField<'a> {
                     #name: Account::new(
                         AccountInfo::new_read(
                             accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                        )
+                        )?
                     )?,
                 },
             )

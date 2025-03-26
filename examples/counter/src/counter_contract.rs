@@ -24,7 +24,7 @@ impl<'info> Initialize<'info> {
                     accounts
                         .get(0usize)
                         .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                ),
+                )?,
             ),
             signer: Account::new(
                 AccountInfo::new_mut(
@@ -57,7 +57,7 @@ impl<'info> Update<'info> {
                     accounts
                         .get(1usize)
                         .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                ),
+                )?,
             )?,
         })
     }
