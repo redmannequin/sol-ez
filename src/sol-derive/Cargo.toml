@@ -7,6 +7,6 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-sha2 = "0.10"
-syn = "2.0"
-quote = "1.0"
+sha2 = { workspace = true }
+syn = { workspace = true }
+quote = { workspace = true }

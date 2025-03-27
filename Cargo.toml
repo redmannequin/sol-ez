@@ -9,6 +9,16 @@ sol-ez = { path = "src/sol-ez" }
 sol-gen = { path = "src/sol-gen" }
 
 # external
+anyhow = "1.0"
 borsh = "1.5"
 pinocchio = "0.8"
 pinocchio-system = "0.2"
+sha2 = "0.10"
+thiserror = "2.0"
+
+# code gen libs
+convert_case = "0.8"
+prettyplease = "0.2"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "2.0"

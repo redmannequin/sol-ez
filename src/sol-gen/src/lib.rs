@@ -34,6 +34,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
             pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
         }
     });
+    code.extend(defs.message.into_iter().map(ast::Message::generate));
     code.extend(defs.account.into_iter().map(ast::Account::generate));
     code.extend(defs.accounts.into_iter().map(ast::Accounts::generate));
     code.extend(defs.contract.generate());

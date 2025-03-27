@@ -1,6 +1,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
+use sha2::{Digest, Sha256};
 
 use crate::parse::token::Span;
 
@@ -27,7 +28,7 @@ impl<'a> Contract<'a> {
         let (instruction_match, instruction_fn): (Vec<_>, Vec<_>) = self
             .instructions
             .into_iter()
-            .map(Instruction::generate)
+            .map(|ix| Instruction::generate(ix, &name))
             .unzip();
         quote! {
             pub mod #contract_mod_name {
@@ -45,9 +46,9 @@ impl<'a> Contract<'a> {
                     T: #contract_trait_name
                 {
                     fn dispatch<'info>(program_id: &Pubkey, accounts: &'info [AccountInfo], payload: &[u8]) -> ProgramResult {
-                        let (instruction, _rest) = payload.split_first().ok_or(ProgramError::InvalidInstructionData)?;
+                        let instruction_data = sol_ez::InstructionData::new(payload)?;
 
-                        match instruction {
+                        match instruction_data.ix {
                             #(#instruction_match)*
                             _ => Err(ProgramError::InvalidInstructionData)
                         }
@@ -68,17 +69,40 @@ pub struct Instruction<'a> {
     pub number: u8,
     pub name: Identifer<'a>,
     pub accounts: Identifer<'a>,
+    pub payload: Option<Identifer<'a>>,
 }
 
 impl<'a> Instruction<'a> {
-    pub fn generate(self) -> (TokenStream, TokenStream) {
+    pub fn generate(self, contract_name: &str) -> (TokenStream, TokenStream) {
         let name = syn::Ident::new(self.name.value, proc_macro2::Span::call_site());
         let accounts = syn::Ident::new(self.accounts.value, proc_macro2::Span::call_site());
 
-        let id = self.number;
+        let discriminator = {
+            let hash = Sha256::digest(format!("ix|{}|{}", contract_name, self.name.value));
+            let bytes = &hash[..4];
+            quote! { [#( #bytes ),*] }
+        };
+
+        if let Some(payload) = self.payload {
+            let payload = syn::Ident::new(payload.value, proc_macro2::Span::call_site());
+            let instruction_match = quote! {
+                #discriminator => {
+                    let ctx = sol_ez::Context {
+                        program_id,
+                        accounts: super::#accounts::load(accounts)?
+                    };
+                    T::#name(ctx, instruction_data.deserialize_data()?)
+                }
+            };
+
+            let instruction_fn = quote! {
+                fn #name(accounts: sol_ez::Context<super::#accounts>, payload: super::#payload) -> ProgramResult;
+            };
+            return (instruction_match, instruction_fn);
+        }
 
         let instruction_match = quote! {
-            #id => {
+            #discriminator => {
                 let ctx = sol_ez::Context {
                     program_id,
                     accounts: super::#accounts::load(accounts)?

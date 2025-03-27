@@ -266,6 +266,14 @@ impl<'src> Parser<'src> {
         let name = self.parse_identifer()?;
         let _l_param = self.lexer.consume_if(TokenType::LParam)?;
         let accounts = self.parse_identifer()?;
+
+        let payload = self
+            .lexer
+            .consume_if(TokenType::Comma)
+            .ok()
+            .map(|_| self.parse_identifer())
+            .transpose()?;
+
         let _r_param = self.lexer.consume_if(TokenType::RParam)?;
         let _assign = self.lexer.consume_if(TokenType::Assign)?;
         let number = self.parse_int()?;
@@ -279,6 +287,7 @@ impl<'src> Parser<'src> {
             number,
             name,
             accounts,
+            payload: payload,
         })
     }
 
@@ -468,7 +477,8 @@ mod test_parser {
                     accounts: Identifer {
                         span: Span { start: 67, end: 71 },
                         value: "Init"
-                    }
+                    },
+                    payload: None
                 }]
             },
             contract

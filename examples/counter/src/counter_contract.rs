@@ -4,6 +4,10 @@ use sol_ez::{account::*, account_info::*, AccountData, DataSize};
 mod pinocchio {
     pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
 }
+#[derive(Debug, BorshDeserialize)]
+pub struct InitialValue {
+    pub value: u8,
+}
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
     pub data: u8,
@@ -104,25 +108,23 @@ pub mod counter_contract {
             accounts: &'info [AccountInfo],
             payload: &[u8],
         ) -> ProgramResult {
-            let (instruction, _rest) = payload
-                .split_first()
-                .ok_or(ProgramError::InvalidInstructionData)?;
-            match instruction {
-                1u8 => {
+            let instruction_data = sol_ez::InstructionData::new(payload)?;
+            match instruction_data.ix {
+                [189u8, 191u8, 195u8, 215u8] => {
                     let ctx = sol_ez::Context {
                         program_id,
                         accounts: super::Initialize::load(accounts)?,
                     };
-                    T::initialize(ctx)
+                    T::initialize(ctx, instruction_data.deserialize_data()?)
                 }
-                2u8 => {
+                [67u8, 81u8, 28u8, 1u8] => {
                     let ctx = sol_ez::Context {
                         program_id,
                         accounts: super::Update::load(accounts)?,
                     };
                     T::update(ctx)
                 }
-                3u8 => {
+                [102u8, 112u8, 45u8, 252u8] => {
                     let ctx = sol_ez::Context {
                         program_id,
                         accounts: super::Close::load(accounts)?,
@@ -134,7 +136,10 @@ pub mod counter_contract {
         }
     }
     pub trait CounterContract {
-        fn initialize(accounts: sol_ez::Context<super::Initialize>) -> ProgramResult;
+        fn initialize(
+            accounts: sol_ez::Context<super::Initialize>,
+            payload: super::InitialValue,
+        ) -> ProgramResult;
         fn update(accounts: sol_ez::Context<super::Update>) -> ProgramResult;
         fn close(accounts: sol_ez::Context<super::Close>) -> ProgramResult;
     }

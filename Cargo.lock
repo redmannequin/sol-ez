@@ -326,6 +326,7 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
+ "sha2",
  "sol-derive",
  "syn 2.0.100",
  "thiserror",

@@ -1,6 +1,6 @@
 #![no_std]
 use counter_contract::{
-    Close, Count, Initialize, Update,
+    Close, Count, InitialValue, Initialize, Update,
     counter_contract::{CounterContract, CounterDispatcher},
 };
 use pinocchio::{
@@ -20,11 +20,13 @@ pub const FN: EFN = CounterDispatcher::<Counter>::dispatch;
 pub struct Counter;
 
 impl CounterContract for Counter {
-    fn initialize(ctx: Context<Initialize>) -> ProgramResult {
+    fn initialize(ctx: Context<Initialize>, payload: InitialValue) -> ProgramResult {
         let mut signer = ctx.accounts.signer;
         let owner = ctx.program_id;
 
-        let account = Count { data: 0 };
+        let account = Count {
+            data: payload.value,
+        };
         let counter = ctx.accounts.counter.init(account, &mut signer, owner)?;
 
         log!("Counter initialized with value: {}", counter.as_ref().data);

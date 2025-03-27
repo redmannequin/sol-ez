@@ -8,10 +8,13 @@ edition = "2024"
 sol-derive = { workspace = true }
 
 # external
-anyhow = "1.0"
-convert_case = "0.8"
-prettyplease = "0.2"
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = "2.0"
-thiserror = "2.0"
+anyhow = { workspace = true }
+proc-macro2 = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+
+# code gen libs
+convert_case = { workspace = true }
+prettyplease = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
