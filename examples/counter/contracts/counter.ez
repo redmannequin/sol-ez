@@ -1,9 +1,9 @@
 message InitialValue {
-    value: u8 = 1;
+    value: u8;
 }
 
 account Count {
-    data: u8 = 1;
+    data: u8;
 }
 
 accounts Initialize {
@@ -22,7 +22,7 @@ accounts Close {
 }
 
 contract Counter {
-    instruction initialize(Initialize, InitialValue) = 1;
-    instruction update(Update) = 2;
-    instruction close(Close) = 3;
+    instruction initialize(Initialize, InitialValue);
+    instruction update(Update);
+    instruction close(Close);
 }

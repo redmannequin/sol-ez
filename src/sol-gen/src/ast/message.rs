@@ -32,7 +32,6 @@ impl<'a> Message<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct MessageField<'a> {
     pub span: Span,
-    pub number: u8,
     pub name: Identifer<'a>,
     pub r#type: Type,
 }

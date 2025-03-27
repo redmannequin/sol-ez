@@ -33,7 +33,6 @@ impl<'a> Account<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct AccountField<'a> {
     pub span: Span,
-    pub number: u8,
     pub name: Identifer<'a>,
     pub r#type: Type,
 }

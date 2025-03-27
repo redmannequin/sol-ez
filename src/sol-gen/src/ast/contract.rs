@@ -66,7 +66,6 @@ impl<'a> Contract<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Instruction<'a> {
     pub span: Span,
-    pub number: u8,
     pub name: Identifer<'a>,
     pub accounts: Identifer<'a>,
     pub payload: Option<Identifer<'a>>,

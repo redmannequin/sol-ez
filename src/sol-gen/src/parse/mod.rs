@@ -91,8 +91,6 @@ impl<'src> Parser<'src> {
         let name = self.parse_identifer()?;
         let _colon = self.lexer.consume_if(TokenType::Colon)?;
         let r#type = self.parse_type()?;
-        let _assign = self.lexer.consume_if(TokenType::Assign)?;
-        let number = self.parse_int()?;
         let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
         Ok(MessageField {
@@ -100,7 +98,6 @@ impl<'src> Parser<'src> {
                 start: name.span.start,
                 end: simi_colon.span.end,
             },
-            number,
             name: name,
             r#type,
         })
@@ -135,8 +132,6 @@ impl<'src> Parser<'src> {
         let name = self.parse_identifer()?;
         let _colon = self.lexer.consume_if(TokenType::Colon)?;
         let r#type = self.parse_type()?;
-        let _assign = self.lexer.consume_if(TokenType::Assign)?;
-        let number = self.parse_int()?;
         let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
         Ok(AccountField {
@@ -144,7 +139,6 @@ impl<'src> Parser<'src> {
                 start: name.span.start,
                 end: simi_colon.span.end,
             },
-            number,
             name: name,
             r#type,
         })
@@ -275,8 +269,6 @@ impl<'src> Parser<'src> {
             .transpose()?;
 
         let _r_param = self.lexer.consume_if(TokenType::RParam)?;
-        let _assign = self.lexer.consume_if(TokenType::Assign)?;
-        let number = self.parse_int()?;
         let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
 
         Ok(Instruction {
@@ -284,7 +276,6 @@ impl<'src> Parser<'src> {
                 start: instruction.span.start,
                 end: simi_colon.span.end,
             },
-            number,
             name,
             accounts,
             payload: payload,
@@ -376,7 +367,6 @@ mod test_parser {
                 },
                 fields: vec![MessageField {
                     span: Span { start: 23, end: 37 },
-                    number: 1,
                     name: Identifer {
                         span: Span { start: 23, end: 28 },
                         value: "value"
@@ -404,7 +394,6 @@ mod test_parser {
                 },
                 fields: vec![AccountField {
                     span: Span { start: 23, end: 37 },
-                    number: 1,
                     name: Identifer {
                         span: Span { start: 23, end: 28 },
                         value: "value"
@@ -469,7 +458,6 @@ mod test_parser {
                 },
                 instructions: vec![Instruction {
                     span: Span { start: 45, end: 77 },
-                    number: 1,
                     name: Identifer {
                         span: Span { start: 57, end: 66 },
                         value: "initalize"
