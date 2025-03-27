@@ -1,23 +1,20 @@
-
-account Signer {}
-
 account Count {
     data: u8 = 1;
 }
 
 accounts Initialize {
     init counter: Count = 1;
-    mut signer: Signer = 2;
+    mutable signer: Signer = 2;
 }
 
 accounts Update {
-    mut counter: Count = 1;
+    mutable counter: Count = 1;
     signer: Signer = 2;
 }
 
 accounts Close {
-    mut counter: Count = 1;
-    mut signer: Signer = 2;
+    mutable counter: Count = 1;
+    mutable signer: Signer = 2;
 }
 
 contract Counter {

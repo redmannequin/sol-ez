@@ -6,6 +6,7 @@ use crate::parse::token::Span;
 
 use super::Identifer;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Contract<'a> {
     pub span: Span,
     pub name: Identifer<'a>,
@@ -61,6 +62,7 @@ impl<'a> Contract<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Instruction<'a> {
     pub span: Span,
     pub number: u8,

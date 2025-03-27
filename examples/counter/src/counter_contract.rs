@@ -5,8 +5,6 @@ mod pinocchio {
     pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
 }
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
-pub struct Signer {}
-#[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
     pub data: u8,
 }
@@ -26,7 +24,7 @@ impl<'info> Initialize<'info> {
                         .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             ),
-            signer: Account::new(
+            signer: Account::new_singer(
                 AccountInfo::new_mut(
                     accounts
                         .get(1usize)
@@ -52,7 +50,7 @@ impl<'info> Update<'info> {
                         .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             )?,
-            signer: Account::new(
+            signer: Account::new_singer(
                 AccountInfo::new_read(
                     accounts
                         .get(1usize)
@@ -78,7 +76,7 @@ impl<'info> Close<'info> {
                         .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
                 )?,
             )?,
-            signer: Account::new(
+            signer: Account::new_singer(
                 AccountInfo::new_mut(
                     accounts
                         .get(1usize)

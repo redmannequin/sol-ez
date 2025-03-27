@@ -20,7 +20,7 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
 
     let lexer = Lexer::new(src.as_str());
     let parser = Parser::new(lexer);
-    let (account_defs, accounts_defs, contract_defs) = parser.parse()?;
+    let defs = parser.parse()?;
 
     let mut code = TokenStream::new();
 
@@ -34,9 +34,9 @@ pub fn generate(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
             pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
         }
     });
-    code.extend(account_defs.into_iter().map(ast::Account::generate));
-    code.extend(accounts_defs.into_iter().map(ast::Accounts::generate));
-    code.extend(contract_defs.into_iter().map(ast::Contract::generate));
+    code.extend(defs.account.into_iter().map(ast::Account::generate));
+    code.extend(defs.accounts.into_iter().map(ast::Accounts::generate));
+    code.extend(defs.contract.generate());
 
     let code_file = syn::parse2(code).context("failed to parse token stream")?;
     let code_src = prettyplease::unparse(&code_file);

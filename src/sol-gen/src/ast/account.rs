@@ -6,6 +6,7 @@ use crate::parse::token::Span;
 
 use super::Identifer;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Account<'a> {
     pub span: Span,
     pub name: Identifer<'a>,
@@ -29,6 +30,7 @@ impl<'a> Account<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct AccountField<'a> {
     pub span: Span,
     pub number: u8,
@@ -50,6 +52,7 @@ impl<'a> AccountField<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Type {
     Bool,
     U8,
@@ -73,10 +76,12 @@ impl Type {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Str {
     pub max: u8,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Arr {
     pub max: u8,
     pub r#type: Box<Type>,

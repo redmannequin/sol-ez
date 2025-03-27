@@ -24,8 +24,6 @@ impl CounterContract for Counter {
         let mut signer = ctx.accounts.signer;
         let owner = ctx.program_id;
 
-        signer.verify_signer()?;
-
         let account = Count { data: 0 };
         let counter = ctx.accounts.counter.init(account, &mut signer, owner)?;
 

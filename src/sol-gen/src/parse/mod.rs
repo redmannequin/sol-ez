@@ -1,39 +1,50 @@
 use std::mem;
 
+use anyhow::Context;
 use lexer::Lexer;
 use token::{Span, Token, TokenType};
 
 use crate::{
-    ast::{Account, AccountField, Accounts, AccountsField, Contract, Identifer, Instruction, Type},
+    ast::{
+        Account, AccountField, Accounts, AccountsField, Contract, Definitions, Identifer,
+        Instruction, Message, MessageField, Type,
+    },
     error::SolGenError,
 };
 
 pub mod lexer;
 pub mod token;
 
-pub struct Parser<'a> {
-    lexer: TokenHandler<'a>,
+pub struct Parser<'src> {
+    lexer: TokenHandler<'src>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(lexer: Lexer<'a>) -> Self {
+impl<'src> Parser<'src> {
+    pub fn new(lexer: Lexer<'src>) -> Self {
         Parser {
             lexer: TokenHandler::new(lexer),
         }
     }
 
-    pub fn parse(
-        mut self,
-    ) -> Result<(Vec<Account<'a>>, Vec<Accounts<'a>>, Vec<Contract<'a>>), SolGenError> {
+    pub fn parse(mut self) -> Result<Definitions<'src>, SolGenError> {
         let mut account_defs = Vec::new();
         let mut accounts_defs = Vec::new();
-        let mut contract_defs = Vec::new();
+        let mut contract = None;
+        let mut message_defs = Vec::new();
 
         while let Some(token) = self.lexer.curr() {
             match token.r#type {
                 TokenType::Account => account_defs.push(self.parse_account()?),
                 TokenType::Accounts => accounts_defs.push(self.parse_accounts()?),
-                TokenType::Contract => contract_defs.push(self.parse_contract()?),
+                TokenType::Contract => {
+                    if contract.is_some() {
+                        return Err(SolGenError::Other(anyhow::anyhow!(
+                            "Only a single contract can be defined"
+                        )));
+                    }
+                    contract = Some(self.parse_contract()?);
+                }
+                TokenType::Message => message_defs.push(self.parse_message()?),
                 TokenType::InvalidChar(ch) => return Err(SolGenError::InvalidChar(ch)),
                 token_ty => {
                     return Err(SolGenError::ExpectedToken(
@@ -44,10 +55,58 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok((account_defs, accounts_defs, contract_defs))
+        Ok(Definitions {
+            message: message_defs,
+            account: account_defs,
+            accounts: accounts_defs,
+            contract: contract.context("A contract must be defined")?,
+        })
     }
 
-    fn parse_account(&mut self) -> Result<Account<'a>, SolGenError> {
+    fn parse_message(&mut self) -> Result<Message<'src>, SolGenError> {
+        let payload = self.lexer.consume_if(TokenType::Message)?;
+        let name = self.parse_identifer()?;
+        let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
+
+        let mut fields = Vec::new();
+        while let Some(token) = self.lexer.curr() {
+            if token.r#type == TokenType::RBrace {
+                break;
+            }
+            fields.push(self.parse_payload_field()?);
+        }
+        let r_brace = self.lexer.consume_if(TokenType::RBrace)?;
+
+        Ok(Message {
+            span: Span {
+                start: payload.span.start,
+                end: r_brace.span.end,
+            },
+            name,
+            fields,
+        })
+    }
+
+    fn parse_payload_field(&mut self) -> Result<MessageField<'src>, SolGenError> {
+        let name = self.parse_identifer()?;
+        let _colon = self.lexer.consume_if(TokenType::Colon)?;
+        let r#type = self.parse_type()?;
+        let _assign = self.lexer.consume_if(TokenType::Assign)?;
+        let number = self.parse_int()?;
+        let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
+
+        Ok(MessageField {
+            span: Span {
+                start: name.span.start,
+                end: simi_colon.span.end,
+            },
+            number,
+            name: name,
+            r#type,
+        })
+    }
+
+    fn parse_account(&mut self) -> Result<Account<'src>, SolGenError> {
         let account = self.lexer.consume_if(TokenType::Account)?;
         let name = self.parse_identifer()?;
         let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
@@ -72,7 +131,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_account_field(&mut self) -> Result<AccountField<'a>, SolGenError> {
+    fn parse_account_field(&mut self) -> Result<AccountField<'src>, SolGenError> {
         let name = self.parse_identifer()?;
         let _colon = self.lexer.consume_if(TokenType::Colon)?;
         let r#type = self.parse_type()?;
@@ -114,7 +173,7 @@ impl<'a> Parser<'a> {
         )
     }
 
-    fn parse_accounts(&mut self) -> Result<Accounts<'a>, SolGenError> {
+    fn parse_accounts(&mut self) -> Result<Accounts<'src>, SolGenError> {
         let accounts = self.lexer.consume_if(TokenType::Accounts)?;
         let name = self.parse_identifer()?;
         let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
@@ -139,15 +198,27 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_accounts_field(&mut self) -> Result<AccountsField<'a>, SolGenError> {
-        let mutable = self.lexer.consume_if(TokenType::Mut).is_ok();
+    fn parse_accounts_field(&mut self) -> Result<AccountsField<'src>, SolGenError> {
+        let mutable = self.lexer.consume_if(TokenType::Mutable).is_ok();
         let init = self.lexer.consume_if(TokenType::Init).is_ok();
 
         assert!(!(mutable & init));
 
         let name = self.parse_identifer()?;
         let _colon = self.lexer.consume_if(TokenType::Colon)?;
-        let account = self.parse_identifer()?;
+        let account = match self.lexer.curr() {
+            Some(Token {
+                r#type: TokenType::Signer,
+                ..
+            }) => {
+                let signer = self.lexer.bump().unwrap();
+                Identifer {
+                    span: signer.span,
+                    value: self.lexer.src_span(signer.span),
+                }
+            }
+            _ => self.parse_identifer()?,
+        };
         let _assign = self.lexer.consume_if(TokenType::Assign)?;
         let number = self.parse_int()?;
         let simi_colon = self.lexer.consume_if(TokenType::SimiColon)?;
@@ -165,7 +236,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_contract(&mut self) -> Result<Contract<'a>, SolGenError> {
+    fn parse_contract(&mut self) -> Result<Contract<'src>, SolGenError> {
         let contract = self.lexer.consume_if(TokenType::Contract)?;
         let name = self.parse_identifer()?;
         let _l_brace = self.lexer.consume_if(TokenType::LBrace)?;
@@ -190,7 +261,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_instruction(&mut self) -> Result<Instruction<'a>, SolGenError> {
+    fn parse_instruction(&mut self) -> Result<Instruction<'src>, SolGenError> {
         let instruction = self.lexer.consume_if(TokenType::Instruction)?;
         let name = self.parse_identifer()?;
         let _l_param = self.lexer.consume_if(TokenType::LParam)?;
@@ -211,7 +282,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_identifer(&mut self) -> Result<Identifer<'a>, SolGenError> {
+    fn parse_identifer(&mut self) -> Result<Identifer<'src>, SolGenError> {
         let identifer = self.lexer.consume_if(TokenType::Identifer)?;
         Ok(Identifer {
             span: identifer.span,
@@ -265,5 +336,142 @@ impl<'a> TokenHandler<'a> {
 
     pub fn src_span(&self, span: Span) -> &'a str {
         self.lexer.src_span(span)
+    }
+}
+
+#[cfg(test)]
+mod test_parser {
+    use crate::{
+        ast::{
+            Account, AccountField, Accounts, AccountsField, Contract, Identifer, Instruction,
+            Message, MessageField, Type,
+        },
+        parse::token::Span,
+    };
+
+    use super::{Parser, lexer::Lexer};
+
+    #[test]
+    fn test_message_parse() {
+        let src = " message InitalValue { value: u8 = 1; } ";
+        let msg = Parser::new(Lexer::new(src))
+            .parse_message()
+            .expect("failed to parse message src");
+
+        assert_eq!(
+            Message {
+                span: Span { start: 1, end: 39 },
+                name: Identifer {
+                    span: Span { start: 9, end: 20 },
+                    value: "InitalValue"
+                },
+                fields: vec![MessageField {
+                    span: Span { start: 23, end: 37 },
+                    number: 1,
+                    name: Identifer {
+                        span: Span { start: 23, end: 28 },
+                        value: "value"
+                    },
+                    r#type: Type::U8
+                }]
+            },
+            msg
+        )
+    }
+
+    #[test]
+    fn test_account_parse() {
+        let src = " account InitalValue { value: u8 = 1; } ";
+        let account = Parser::new(Lexer::new(src))
+            .parse_account()
+            .expect("failed to parse account src");
+
+        assert_eq!(
+            Account {
+                span: Span { start: 1, end: 39 },
+                name: Identifer {
+                    span: Span { start: 9, end: 20 },
+                    value: "InitalValue"
+                },
+                fields: vec![AccountField {
+                    span: Span { start: 23, end: 37 },
+                    number: 1,
+                    name: Identifer {
+                        span: Span { start: 23, end: 28 },
+                        value: "value"
+                    },
+                    r#type: Type::U8
+                }]
+            },
+            account
+        )
+    }
+
+    #[test]
+    fn test_accounts_parse() {
+        let src = " accounts Initalize { user: User = 1; } ";
+        let accoutns = Parser::new(Lexer::new(src))
+            .parse_accounts()
+            .expect("failed to parse accounts src");
+
+        assert_eq!(
+            Accounts {
+                span: Span { start: 1, end: 39 },
+                name: Identifer {
+                    span: Span { start: 10, end: 19 },
+                    value: "Initalize"
+                },
+                fields: vec![AccountsField {
+                    span: Span { start: 22, end: 37 },
+                    number: 1,
+                    init: false,
+                    mutable: false,
+                    name: Identifer {
+                        span: Span { start: 22, end: 26 },
+                        value: "user"
+                    },
+                    account: Identifer {
+                        span: Span { start: 28, end: 32 },
+                        value: "User"
+                    }
+                }]
+            },
+            accoutns
+        )
+    }
+
+    #[test]
+    fn test_contract_parse() {
+        let src = r#"
+            contract test {
+                instruction initalize(Init) = 1;
+            }
+        "#;
+        let contract = Parser::new(Lexer::new(src))
+            .parse_contract()
+            .expect("failed to parse contract src");
+
+        assert_eq!(
+            Contract {
+                span: Span { start: 13, end: 91 },
+                name: Identifer {
+                    span: Span { start: 22, end: 26 },
+                    value: "test"
+                },
+                instructions: vec![Instruction {
+                    span: Span { start: 45, end: 77 },
+                    number: 1,
+                    name: Identifer {
+                        span: Span { start: 57, end: 66 },
+                        value: "initalize"
+                    },
+                    accounts: Identifer {
+                        span: Span { start: 67, end: 71 },
+                        value: "Init"
+                    }
+                }]
+            },
+            contract
+        )
     }
 }

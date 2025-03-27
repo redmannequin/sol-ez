@@ -6,6 +6,7 @@ use crate::parse::token::Span;
 
 use super::Identifer;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Accounts<'a> {
     pub span: Span,
     pub name: Identifer<'a>,
@@ -37,6 +38,7 @@ impl<'a> Accounts<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct AccountsField<'a> {
     pub span: Span,
     pub number: u8,
@@ -55,6 +57,37 @@ impl<'a> AccountsField<'a> {
         let name = syn::Ident::new(self.name.value, proc_macro2::Span::call_site());
         let ty = syn::Ident::new(self.account.value, proc_macro2::Span::call_site());
         let idx = (self.number - 1) as usize;
+
+        if self.account.value == "Signer" {
+            assert!(!self.init, "a Singer should never be init");
+            return if self.mutable {
+                (
+                    quote! {
+                        pub #name: Account<'info, #ty, Mutable>,
+                    },
+                    quote! {
+                        #name: Account::new_singer(
+                            AccountInfo::new_mut(
+                                accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
+                            )?
+                        )?,
+                    },
+                )
+            } else {
+                (
+                    quote! {
+                        pub #name: Account<'info, #ty, Read>,
+                    },
+                    quote! {
+                        #name: Account::new_singer(
+                            AccountInfo::new_read(
+                                accounts.get(#idx).ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
+                            )?
+                        )?,
+                    },
+                )
+            };
+        }
 
         if self.init {
             (

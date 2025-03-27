@@ -1,10 +1,10 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     pub span: Span,
     pub r#type: TokenType,
@@ -13,18 +13,20 @@ pub struct Token {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     // keywords
-    Contract,    // contract
-    Instruction, // inctruction
-    Accounts,    // accounts
     Account,     // account
-    Mut,         // mut
+    Accounts,    // accounts
+    Contract,    // contract
     Init,        // init
+    Instruction, // inctruction
+    Message,     // message
+    Mutable,     // mutable
     // types
-    Option, // option
-    Str,    // str
-    U8,     // u8
-    U64,    // u64
     Bool,   // bool
+    Option, // option
+    Signer, // Signer
+    Str,    // str
+    U64,    // u64
+    U8,     // u8
     // slice of chars
     Identifer, // any indentifer
     Intager,   // any intager
@@ -34,12 +36,12 @@ pub enum TokenType {
     Colon,     // :
     SimiColon, // ;
     //
-    LParam,  // (
-    RParam,  // )
-    LBrace,  // {
-    RBrace,  // }
-    LBraket, // [
-    RBracke, // ]
+    LParam,   // (
+    RParam,   // )
+    LBrace,   // {
+    RBrace,   // }
+    LBracket, // [
+    RBracket, // ]
     //
     InvalidChar(char),
 }
