@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream};
@@ -6,17 +6,44 @@ use quote::quote;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-use crate::idl;
+use crate::{error::SolGenError, idl};
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct Config {
     pub program: Program,
-    pub ix: HashMap<String, Ix>,
+    pub ix: BTreeMap<String, Ix>,
     pub ix_config: IxConfig,
     #[serde(default)]
-    pub accounts: HashMap<String, Account>,
+    pub accounts: BTreeMap<String, Account>,
     #[serde(default)]
-    pub message: HashMap<String, Message>,
+    pub message: BTreeMap<String, Message>,
+}
+
+impl Config {
+    pub fn validate(&self) -> Result<(), SolGenError> {
+
+        for (ix_name, ix) in self.ix.iter() {
+            let mut idxs = vec![0; ix.accounts.len()];
+            for (acc_name, acc) in ix.accounts.iter() {
+                if idxs[acc.idx] == 1 {
+                    Err(anyhow::anyhow!("duplicate idx in {} accounts({})", ix_name, acc_name))?;
+                } else if acc.create && (acc.mutable | acc.signed) {
+                    Err(anyhow::anyhow!("idx({}) account({}) cant be create and mutable or signed", ix_name, acc_name))?;
+                } else if let Some(ty) = &acc.r#type {
+
+                    let _account_def = self.accounts.get(ty).ok_or(
+                        anyhow::anyhow!("idx({}) account({}) type {} not defined", ix_name, acc_name, ty)
+                    )?;
+
+                    // TODO check seed params from accounts and account seed
+
+                }
+                idxs[acc.idx] = 1;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
@@ -28,8 +55,8 @@ pub struct Program {
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct Ix {
     #[serde(default)]
-    pub args: HashMap<String, Type>,
-    pub accounts: HashMap<String, IxAccount>,
+    pub args: BTreeMap<String, Type>,
+    pub accounts: BTreeMap<String, IxAccount>,
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
@@ -70,7 +97,7 @@ pub struct Account {
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum Message {
-    Struct(HashMap<String, Type>),
+    Struct(BTreeMap<String, Type>),
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]

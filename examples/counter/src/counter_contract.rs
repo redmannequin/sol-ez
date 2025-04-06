@@ -16,6 +16,9 @@ where
     ) -> Result<(), ProgramError> {
         let ix_data = sol_ez::InstructionData::new(payload)?;
         match ix_data.ix {
+            [154u8, 238u8, 251u8, 74u8] => {
+                T::close(program_id, CloseAccounts::load(accounts)?)
+            }
             [45u8, 80u8, 125u8, 159u8] => {
                 T::increment(program_id, IncrementAccounts::load(accounts)?)
             }
@@ -23,14 +26,12 @@ where
                 let amount = ix_data.deserialize_data()?;
                 T::initalize(program_id, InitalizeAccounts::load(accounts)?, amount)
             }
-            [154u8, 238u8, 251u8, 74u8] => {
-                T::close(program_id, CloseAccounts::load(accounts)?)
-            }
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
 }
 pub trait CounterContract {
+    fn close(owner: &Pubkey, accounts: CloseAccounts) -> Result<(), ProgramError>;
     fn increment(
         owner: &Pubkey,
         accounts: IncrementAccounts,
@@ -40,11 +41,34 @@ pub trait CounterContract {
         accounts: InitalizeAccounts,
         amount: u8,
     ) -> Result<(), ProgramError>;
-    fn close(owner: &Pubkey, accounts: CloseAccounts) -> Result<(), ProgramError>;
 }
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
     pub value: u8,
+}
+pub struct CloseAccounts<'info> {
+    pub count: Account<'info, Count, Mutable, Unsigned>,
+    pub user: Account<'info, Empty, Mutable, Signed>,
+}
+impl<'info> CloseAccounts<'info> {
+    pub fn load(
+        accounts: &'info [pinocchio::account_info::AccountInfo],
+    ) -> Result<Self, ProgramError> {
+        Ok(Self {
+            count: AccountBuilder::new(
+                    accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .set_payload()
+                .mutable()?
+                .build()?,
+            user: AccountBuilder::new(
+                    accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .mutable()?
+                .signed()?
+                .build()?,
+        })
+    }
 }
 pub struct IncrementAccounts<'info> {
     pub count: Account<'info, Count, Mutable, Unsigned>,
@@ -84,30 +108,6 @@ impl<'info> InitalizeAccounts<'info> {
                     accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
                 )?,
             ),
-            user: AccountBuilder::new(
-                    accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
-                )
-                .mutable()?
-                .signed()?
-                .build()?,
-        })
-    }
-}
-pub struct CloseAccounts<'info> {
-    pub count: Account<'info, Count, Mutable, Unsigned>,
-    pub user: Account<'info, Empty, Mutable, Signed>,
-}
-impl<'info> CloseAccounts<'info> {
-    pub fn load(
-        accounts: &'info [pinocchio::account_info::AccountInfo],
-    ) -> Result<Self, ProgramError> {
-        Ok(Self {
-            count: AccountBuilder::new(
-                    accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
-                )
-                .set_payload()
-                .mutable()?
-                .build()?,
             user: AccountBuilder::new(
                     accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
                 )

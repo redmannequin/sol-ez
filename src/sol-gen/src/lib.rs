@@ -19,6 +19,8 @@ pub fn generate2(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
 
     let config = config::Config::deserialize(toml::Deserializer::new(&src))
         .context("failed to parse config")?;
+    config.validate()?;
+
     let code = gen_program_from_config(config);
 
     let code_file = syn::parse2(code).context("failed to parse token stream")?;
