@@ -4,12 +4,13 @@ use std::{
 };
 
 use anyhow::Context;
-use config::gen_program_from_config;
 use error::SolGenError;
+use gen_contract::gen_program_from_config;
 use serde::Deserialize;
 
 pub mod config;
 pub mod error;
+pub mod gen_contract;
 pub mod idl;
 
 pub fn generate2(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
