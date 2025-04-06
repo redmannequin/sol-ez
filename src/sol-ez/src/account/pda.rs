@@ -9,7 +9,7 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 
 use crate::account_info::{
-    AccountInfo, Init, Read,
+    AccountInfo, Init, ReadOnly, Signed, Unsigned,
     account_access_triat::{AccountRead, AccountWrite},
 };
 
@@ -19,7 +19,9 @@ pub trait AccountData {
     const SIZE: usize;
     const DISCRIMINATOR: [u8; 8];
 
-    fn deserialize<'info, M>(account_info: &AccountInfo<'info, M>) -> Result<Self, ProgramError>
+    fn deserialize<'info, M, S>(
+        account_info: &AccountInfo<'info, M, S>,
+    ) -> Result<Self, ProgramError>
     where
         Self: BorshDeserialize,
         M: AccountRead,
@@ -32,9 +34,9 @@ pub trait AccountData {
         Ok(Self::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?)
     }
 
-    fn serialize<'info, M>(
+    fn serialize<'info, M, S>(
         &self,
-        account_info: &mut AccountInfo<'info, M>,
+        account_info: &mut AccountInfo<'info, M, S>,
     ) -> Result<(), ProgramError>
     where
         Self: BorshSerialize,
@@ -48,14 +50,14 @@ pub trait AccountData {
     }
 }
 
-impl<'info, T, P> Account<'info, T, P>
+impl<'info, T, P, S> Account<'info, T, P, S>
 where
     T: AccountData,
 {
-    pub fn new(account_info: AccountInfo<'info, P>) -> Result<Self, ProgramError>
+    pub fn new(account_info: AccountInfo<'info, P, S>) -> Result<Self, ProgramError>
     where
         T: BorshDeserialize,
-        P: AccountRead + 'info,
+        P: AccountRead,
     {
         let inner = { <T as AccountData>::deserialize(&account_info)? };
         Ok(Account {
@@ -78,7 +80,7 @@ where
         &mut self.inner
     }
 
-    pub fn apply(mut self) -> Result<Account<'info, T, Read>, ProgramError>
+    pub fn apply(mut self) -> Result<Account<'info, T, ReadOnly, S>, ProgramError>
     where
         T: BorshSerialize,
         P: AccountWrite,
@@ -90,7 +92,10 @@ where
         })
     }
 
-    pub fn close<D, DP>(self, signer: &mut Account<'info, D, DP>) -> Result<(), ProgramError>
+    pub fn close<D, DP>(
+        self,
+        signer: &mut Account<'info, D, DP, Signed>,
+    ) -> Result<(), ProgramError>
     where
         P: AccountWrite + AccountRead,
         DP: AccountWrite + AccountRead,
@@ -102,11 +107,11 @@ where
     }
 }
 
-impl<'info, T> Account<'info, PhantomData<T>, Init>
+impl<'info, T> Account<'info, PhantomData<T>, Init, Unsigned>
 where
     T: AccountData,
 {
-    pub fn new_init(account_info: AccountInfo<'info, Init>) -> Self
+    pub fn new_init(account_info: AccountInfo<'info, Init, Unsigned>) -> Self
     where
         T: AccountData,
     {
@@ -116,12 +121,12 @@ where
         }
     }
 
-    pub fn init<P, PA>(
+    pub fn init<P, PA, PS>(
         mut self,
         account: T,
-        payer: &mut Account<'info, P, PA>,
+        payer: &mut Account<'info, P, PA, PS>,
         owner: &Pubkey,
-    ) -> Result<Account<'info, T, Read>, ProgramError>
+    ) -> Result<Account<'info, T, ReadOnly, Unsigned>, ProgramError>
     where
         T: BorshSerialize,
         PA: AccountWrite,

@@ -19,12 +19,21 @@ pub(crate) mod account_access_triat {
 pub struct Init;
 
 /// Account Read Marker
-pub struct Read;
+pub struct ReadOnly;
 
 /// Account Mutable Marker
 pub struct Mutable;
 
-impl AccountRead for Read {}
+/// Account Unsigned Marker
+pub struct Unsigned;
+
+/// Account Signed Marker
+pub struct Signed;
+
+// Mark Account with no payload
+pub struct Empty;
+
+impl AccountRead for ReadOnly {}
 impl AccountRead for Mutable {}
 impl AccountWrite for Init {}
 impl AccountWrite for Mutable {}
@@ -50,13 +59,14 @@ impl<'info> AccountGuard<'info> {
     }
 }
 
-pub struct AccountInfo<'info, M> {
+pub struct AccountInfo<'info, M, S> {
     inner: &'info pinocchio::AccountInfo,
     guard: AccountGuard<'info>,
-    _marker: PhantomData<M>,
+    _mutable_marker: PhantomData<M>,
+    _signed_markser: PhantomData<S>,
 }
 
-impl<'info, M> AccountInfo<'info, M> {
+impl<'info, M, S> AccountInfo<'info, M, S> {
     pub fn new(
         account_info: &'info pinocchio::AccountInfo,
     ) -> Result<Self, pinocchio::ProgramError> {
@@ -64,7 +74,8 @@ impl<'info, M> AccountInfo<'info, M> {
         Ok(AccountInfo {
             inner: account_info,
             guard,
-            _marker: PhantomData,
+            _mutable_marker: PhantomData,
+            _signed_markser: PhantomData,
         })
     }
 
@@ -196,7 +207,7 @@ impl<'info, M> AccountInfo<'info, M> {
     }
 }
 
-impl<'info> AccountInfo<'info, Init> {
+impl<'info, S> AccountInfo<'info, Init, S> {
     pub fn new_init(
         account_info: &'info pinocchio::AccountInfo,
     ) -> Result<Self, pinocchio::ProgramError> {
@@ -204,34 +215,16 @@ impl<'info> AccountInfo<'info, Init> {
     }
 }
 
-impl<'info> AccountInfo<'info, Read> {
-    pub fn new_read(
-        account_info: &'info pinocchio::AccountInfo,
-    ) -> Result<Self, pinocchio::ProgramError> {
-        Self::new(account_info)
-    }
-}
-
-impl<'info> AccountInfo<'info, Mutable> {
-    pub fn new_mut(
-        account_info: &'info pinocchio::AccountInfo,
-    ) -> Result<Self, pinocchio::ProgramError> {
-        if !account_info.is_writable() {
-            return Err(pinocchio::ProgramError::Immutable);
-        }
-        Self::new(account_info)
-    }
-}
-
-impl<'info, M> AccountInfo<'info, M>
+impl<'info, M, S> AccountInfo<'info, M, S>
 where
     M: AccountWrite,
 {
-    pub fn to_read(self) -> AccountInfo<'info, Read> {
+    pub fn to_read(self) -> AccountInfo<'info, ReadOnly, S> {
         AccountInfo {
             inner: self.inner,
             guard: self.guard,
-            _marker: PhantomData,
+            _mutable_marker: PhantomData,
+            _signed_markser: PhantomData,
         }
     }
 }

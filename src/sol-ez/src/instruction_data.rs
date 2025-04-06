@@ -1,20 +1,27 @@
+use core::usize;
+
 use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
 #[derive(Debug)]
-pub struct InstructionData<'data> {
-    pub ix: [u8; 4],
+pub struct InstructionData<'data, const N: usize> {
+    pub ix: [u8; N],
     pub data: &'data [u8],
 }
 
-impl<'data> InstructionData<'data> {
+impl<'data, const N: usize> InstructionData<'data, N> {
     pub fn new(data: &'data [u8]) -> Result<Self, ProgramError> {
-        if data.len() < 4 {
+        if data.len() < N {
             return Err(ProgramError::InvalidInstructionData);
         }
 
         let (ix, data) = data.split_at(4);
-        let ix = [ix[0], ix[1], ix[2], ix[3]];
+        let ix = {
+            let mut data = [0; N];
+            data.copy_from_slice(ix);
+            data
+        };
+
         Ok(InstructionData { ix, data })
     }
 

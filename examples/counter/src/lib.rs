@@ -1,16 +1,13 @@
 #![no_std]
 use counter_contract::{
-    Close, Count, InitialValue, Initialize, Update,
-    counter_contract::{CounterContract, CounterDispatcher},
+    CloseAccounts, Count, CounterContract, CounterDispatcher, IncrementAccounts, InitalizeAccounts,
 };
-use pinocchio::{
-    ProgramResult, account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey,
-};
+use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 use pinocchio_log::log;
-use sol_ez::{Context, Contract};
+use sol_ez::Contract;
 
 // generated code
-mod counter_contract;
+pub mod counter_contract;
 
 type EFN =
     for<'a, 'b, 'info> fn(&'a Pubkey, &'info [AccountInfo], &'b [u8]) -> Result<(), ProgramError>;
@@ -20,33 +17,33 @@ pub const FN: EFN = CounterDispatcher::<Counter>::dispatch;
 pub struct Counter;
 
 impl CounterContract for Counter {
-    fn initialize(ctx: Context<Initialize>, payload: InitialValue) -> ProgramResult {
-        let mut signer = ctx.accounts.signer;
-        let owner = ctx.program_id;
-
-        let account = Count {
-            data: payload.value,
-        };
-        let counter = ctx.accounts.counter.init(account, &mut signer, owner)?;
-
-        log!("Counter initialized with value: {}", counter.as_ref().data);
-
+    fn increment(
+        _owner: &Pubkey,
+        mut accounts: IncrementAccounts,
+    ) -> Result<(), pinocchio::program_error::ProgramError> {
+        accounts.count.as_ref_mut().value += 1;
+        let counter = accounts.count.apply()?;
+        log!("Counter incremented to: {}", counter.as_ref().value);
         Ok(())
     }
 
-    fn update(mut ctx: Context<Update>) -> ProgramResult {
-        ctx.accounts.signer.verify_signer()?;
-        ctx.accounts.counter.as_ref_mut().data += 1;
-        let counter = ctx.accounts.counter.apply()?;
-
-        log!("Counter incremented to: {}", counter.as_ref().data);
-
+    fn close(
+        _owner: &Pubkey,
+        mut accounts: CloseAccounts,
+    ) -> Result<(), pinocchio::program_error::ProgramError> {
+        accounts.count.close(&mut accounts.user)?;
+        log!("Counter closed");
         Ok(())
     }
 
-    fn close(mut ctx: Context<Close>) -> ProgramResult {
-        ctx.accounts.signer.verify_signer()?;
-        ctx.accounts.counter.close(&mut ctx.accounts.signer)?;
+    fn initalize(
+        owner: &Pubkey,
+        mut accounts: InitalizeAccounts,
+        amount: u8,
+    ) -> Result<(), pinocchio::program_error::ProgramError> {
+        let account = Count { value: amount };
+        let counter = accounts.count.init(account, &mut accounts.user, owner)?;
+        log!("Counter initialized with value: {}", counter.as_ref().value);
         Ok(())
     }
 }

@@ -1,25 +1,26 @@
 pub use pda::AccountData;
-use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
-pub use signer::Signer;
+use pinocchio::pubkey::Pubkey;
 
 use crate::account_info::{
     AccountInfo,
     account_access_triat::{AccountRead, AccountWrite},
 };
 
+pub use builder::AccountBuilder;
+
+mod builder;
 mod pda;
-mod signer;
 
 pub trait DataSize {
     const SIZE: usize;
 }
 
-pub struct Account<'info, T, P> {
+pub struct Account<'info, T, P, S> {
     pub(crate) inner: T,
-    pub(crate) account_info: AccountInfo<'info, P>,
+    pub(crate) account_info: AccountInfo<'info, P, S>,
 }
 
-impl<'info, T, P> Account<'info, T, P> {
+impl<'info, T, P, S> Account<'info, T, P, S> {
     pub fn key(&self) -> &Pubkey {
         self.account_info.key()
     }
@@ -42,25 +43,18 @@ impl<'info, T, P> Account<'info, T, P> {
         self.account_info.set_lamports(lamports)
     }
 
-    pub fn account_info(&self) -> &AccountInfo<'info, P>
+    pub fn account_info(&self) -> &AccountInfo<'info, P, S>
     where
         P: AccountWrite,
     {
         &self.account_info
     }
 
-    pub fn account_info_mut(&mut self) -> &mut AccountInfo<'info, P>
+    pub fn account_info_mut(&mut self) -> &mut AccountInfo<'info, P, S>
     where
         P: AccountWrite,
     {
         &mut self.account_info
-    }
-
-    pub fn verify_signer(&self) -> Result<(), ProgramError> {
-        if !self.account_info.is_signer() {
-            return Err(ProgramError::MissingRequiredSignature);
-        }
-        Ok(())
     }
 }
 

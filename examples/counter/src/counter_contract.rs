@@ -1,146 +1,119 @@
 use core::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use sol_ez::{account::*, account_info::*, AccountData, DataSize};
-mod pinocchio {
-    pub use pinocchio::{program_error::ProgramError, account_info::AccountInfo};
+use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
+pub struct CounterDispatcher<T> {
+    inner: PhantomData<T>,
 }
-#[derive(Debug, BorshDeserialize)]
-pub struct InitialValue {
-    pub value: u8,
+impl<T> sol_ez::Contract for CounterDispatcher<T>
+where
+    T: CounterContract,
+{
+    fn dispatch<'info>(
+        program_id: &Pubkey,
+        accounts: &'info [pinocchio::account_info::AccountInfo],
+        payload: &[u8],
+    ) -> Result<(), ProgramError> {
+        let ix_data = sol_ez::InstructionData::new(payload)?;
+        match ix_data.ix {
+            [45u8, 80u8, 125u8, 159u8] => {
+                T::increment(program_id, IncrementAccounts::load(accounts)?)
+            }
+            [150u8, 198u8, 209u8, 78u8] => {
+                let amount = ix_data.deserialize_data()?;
+                T::initalize(program_id, InitalizeAccounts::load(accounts)?, amount)
+            }
+            [154u8, 238u8, 251u8, 74u8] => {
+                T::close(program_id, CloseAccounts::load(accounts)?)
+            }
+            _ => Err(ProgramError::InvalidInstructionData),
+        }
+    }
+}
+pub trait CounterContract {
+    fn increment(
+        owner: &Pubkey,
+        accounts: IncrementAccounts,
+    ) -> Result<(), ProgramError>;
+    fn initalize(
+        owner: &Pubkey,
+        accounts: InitalizeAccounts,
+        amount: u8,
+    ) -> Result<(), ProgramError>;
+    fn close(owner: &Pubkey, accounts: CloseAccounts) -> Result<(), ProgramError>;
 }
 #[derive(Debug, BorshSerialize, BorshDeserialize, AccountData)]
 pub struct Count {
-    pub data: u8,
+    pub value: u8,
 }
-pub struct Initialize<'info> {
-    pub counter: Account<'info, PhantomData<Count>, Init>,
-    pub signer: Account<'info, Signer, Mutable>,
+pub struct IncrementAccounts<'info> {
+    pub count: Account<'info, Count, Mutable, Unsigned>,
+    pub user: Account<'info, Empty, Mutable, Signed>,
 }
-impl<'info> Initialize<'info> {
+impl<'info> IncrementAccounts<'info> {
     pub fn load(
-        accounts: &'info [pinocchio::AccountInfo],
-    ) -> Result<Self, pinocchio::ProgramError> {
+        accounts: &'info [pinocchio::account_info::AccountInfo],
+    ) -> Result<Self, ProgramError> {
         Ok(Self {
-            counter: Account::new_init(
+            count: AccountBuilder::new(
+                    accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .set_payload()
+                .mutable()?
+                .build()?,
+            user: AccountBuilder::new(
+                    accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .mutable()?
+                .signed()?
+                .build()?,
+        })
+    }
+}
+pub struct InitalizeAccounts<'info> {
+    pub count: Account<'info, PhantomData<Count>, Init, Unsigned>,
+    pub user: Account<'info, Empty, Mutable, Signed>,
+}
+impl<'info> InitalizeAccounts<'info> {
+    pub fn load(
+        accounts: &'info [pinocchio::account_info::AccountInfo],
+    ) -> Result<Self, ProgramError> {
+        Ok(Self {
+            count: Account::new_init(
                 AccountInfo::new_init(
-                    accounts
-                        .get(0usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
+                    accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
                 )?,
             ),
-            signer: Account::new_singer(
-                AccountInfo::new_mut(
-                    accounts
-                        .get(1usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                )?,
-            )?,
+            user: AccountBuilder::new(
+                    accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .mutable()?
+                .signed()?
+                .build()?,
         })
     }
 }
-pub struct Update<'info> {
-    pub counter: Account<'info, Count, Mutable>,
-    pub signer: Account<'info, Signer, Read>,
+pub struct CloseAccounts<'info> {
+    pub count: Account<'info, Count, Mutable, Unsigned>,
+    pub user: Account<'info, Empty, Mutable, Signed>,
 }
-impl<'info> Update<'info> {
+impl<'info> CloseAccounts<'info> {
     pub fn load(
-        accounts: &'info [pinocchio::AccountInfo],
-    ) -> Result<Self, pinocchio::ProgramError> {
+        accounts: &'info [pinocchio::account_info::AccountInfo],
+    ) -> Result<Self, ProgramError> {
         Ok(Self {
-            counter: Account::new(
-                AccountInfo::new_mut(
-                    accounts
-                        .get(0usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                )?,
-            )?,
-            signer: Account::new_singer(
-                AccountInfo::new_read(
-                    accounts
-                        .get(1usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                )?,
-            )?,
+            count: AccountBuilder::new(
+                    accounts.get(1usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .set_payload()
+                .mutable()?
+                .build()?,
+            user: AccountBuilder::new(
+                    accounts.get(0usize).ok_or(ProgramError::NotEnoughAccountKeys)?,
+                )
+                .mutable()?
+                .signed()?
+                .build()?,
         })
-    }
-}
-pub struct Close<'info> {
-    pub counter: Account<'info, Count, Mutable>,
-    pub signer: Account<'info, Signer, Mutable>,
-}
-impl<'info> Close<'info> {
-    pub fn load(
-        accounts: &'info [pinocchio::AccountInfo],
-    ) -> Result<Self, pinocchio::ProgramError> {
-        Ok(Self {
-            counter: Account::new(
-                AccountInfo::new_mut(
-                    accounts
-                        .get(0usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                )?,
-            )?,
-            signer: Account::new_singer(
-                AccountInfo::new_mut(
-                    accounts
-                        .get(1usize)
-                        .ok_or(pinocchio::ProgramError::NotEnoughAccountKeys)?,
-                )?,
-            )?,
-        })
-    }
-}
-pub mod counter_contract {
-    use core::marker::PhantomData;
-    use pinocchio::{
-        account_info::AccountInfo, ProgramResult, program_error::ProgramError,
-        pubkey::Pubkey,
-    };
-    pub struct CounterDispatcher<T> {
-        inner: PhantomData<T>,
-    }
-    impl<T> sol_ez::Contract for CounterDispatcher<T>
-    where
-        T: CounterContract,
-    {
-        fn dispatch<'info>(
-            program_id: &Pubkey,
-            accounts: &'info [AccountInfo],
-            payload: &[u8],
-        ) -> ProgramResult {
-            let instruction_data = sol_ez::InstructionData::new(payload)?;
-            match instruction_data.ix {
-                [189u8, 191u8, 195u8, 215u8] => {
-                    let ctx = sol_ez::Context {
-                        program_id,
-                        accounts: super::Initialize::load(accounts)?,
-                    };
-                    T::initialize(ctx, instruction_data.deserialize_data()?)
-                }
-                [67u8, 81u8, 28u8, 1u8] => {
-                    let ctx = sol_ez::Context {
-                        program_id,
-                        accounts: super::Update::load(accounts)?,
-                    };
-                    T::update(ctx)
-                }
-                [102u8, 112u8, 45u8, 252u8] => {
-                    let ctx = sol_ez::Context {
-                        program_id,
-                        accounts: super::Close::load(accounts)?,
-                    };
-                    T::close(ctx)
-                }
-                _ => Err(ProgramError::InvalidInstructionData),
-            }
-        }
-    }
-    pub trait CounterContract {
-        fn initialize(
-            accounts: sol_ez::Context<super::Initialize>,
-            payload: super::InitialValue,
-        ) -> ProgramResult;
-        fn update(accounts: sol_ez::Context<super::Update>) -> ProgramResult;
-        fn close(accounts: sol_ez::Context<super::Close>) -> ProgramResult;
     }
 }
