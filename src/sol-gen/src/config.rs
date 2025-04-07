@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
 
@@ -96,6 +96,76 @@ pub struct IxAccount {
 pub struct Account {
     pub id: usize,
     pub payload: Message,
+    pub seed: Option<AccountSeed>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize)]
+pub struct AccountSeed {
+    pub bump: bool,
+    pub func: AccountSeedFunc,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct AccountSeedFunc {
+    pub inputs: Vec<String>,
+    pub func: Vec<SeedType>,
+}
+
+impl<'de> Deserialize<'de> for AccountSeedFunc {
+    fn deserialize<D>(deserializer: D) -> Result<AccountSeedFunc, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        AccountSeedFunc::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+impl FromStr for AccountSeedFunc {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.split_once("=>")
+            .ok_or_else(|| format!("Invalid seed func format: {}", s))
+            .and_then(|(inputs, func)| {
+                let inputs: Vec<String> = inputs
+                    .split_once('[')
+                    .and_then(|(_, inputs)| inputs.split_once(']'))
+                    .map(|(inputs, _)| inputs.split(",").map(|s| String::from(s.trim())).collect())
+                    .ok_or_else(|| format!("Invalid seed input format: {}", s))?;
+
+                let func = func
+                    .split('+')
+                    .map(|arg| {
+                        let s = arg.trim();
+                        s.strip_prefix("'")
+                            .and_then(|s| s.strip_suffix("'"))
+                            .map(|s| Ok(SeedType::Defined(s.to_string())))
+                            .unwrap_or_else(|| {
+                                Ok(SeedType::Input(
+                                    inputs
+                                        .iter()
+                                        .map(|s| s.as_str())
+                                        .enumerate()
+                                        .find(|(_, i)| *i == s)
+                                        .map(|(i, _)| i)
+                                        .ok_or_else(|| {
+                                            format!("Invalid seed func arg not defined: {}", s)
+                                        })?,
+                                ))
+                            })
+                    })
+                    .collect::<Result<_, String>>()?;
+
+                Ok(AccountSeedFunc { inputs, func })
+            })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SeedType {
+    Defined(String),
+    Input(usize),
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]

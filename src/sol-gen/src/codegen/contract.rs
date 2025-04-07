@@ -186,36 +186,31 @@ fn gen_accounts(ix_name: &str, accounts: &[InstructionAccount]) -> TokenStream {
         let id = acc.id as usize;
 
         if acc.state.is_create() {
-            return quote! {
-            #field_name: Account::new_init(
-                AccountInfo::new_init(
-                    accounts.get(#id).ok_or(ProgramError::NotEnoughAccountKeys)?
-                )?
-            )
-            };
-        }
-
-        let mut code = quote! {
+            quote! {
+                #field_name: Account::new_init(
+                    AccountInfo::new_init(
+                        accounts.get(#id).ok_or(ProgramError::NotEnoughAccountKeys)?
+                    )?
+                )
+            }
+        } else {
+            let mut code = quote! {
                 #field_name: AccountBuilder::new(
                     accounts.get(#id).ok_or(ProgramError::NotEnoughAccountKeys)?
                 )
-        };
-
-        if acc.payload.is_some() {
-            code.extend(quote! { .set_payload() });
+            };
+            if acc.payload.is_some() {
+                code.extend(quote! { .set_payload() });
+            }
+            if acc.state.is_mutable() {
+                code.extend(quote! { .mutable()? });
+            }
+            if acc.is_signed {
+                code.extend(quote! { .signed()? });
+            }
+            code.extend(quote! { .build()? });
+            code
         }
-
-        if acc.state.is_mutable() {
-            code.extend(quote! { .mutable()? });
-        }
-
-        if acc.is_signed {
-            code.extend(quote! { .signed()? });
-        }
-
-        code.extend(quote! { .build()? });
-
-        code
     });
 
     quote! {

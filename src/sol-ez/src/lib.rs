@@ -16,4 +16,10 @@ pub trait Contract {
     ) -> ProgramResult;
 }
 
+pub trait Seed<const D: usize, const N: usize> {
+    const SEEDS: &[&[u8]; D];
+    type Accounts;
+    fn seeds(keys: &Self::Accounts) -> [&[u8]; N];
+}
+
 pub use sol_derive::AccountData;

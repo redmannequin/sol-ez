@@ -8,8 +8,10 @@ version = [0, 1, 0]
 
 [accounts.count]
 id = 0
+
+[accounts.count.seed]
 bump = true
-seed = "[user] => hello + user"
+func = "[user] => 'hello' + user"
 
 [accounts.count.payload]
 type = "struct"

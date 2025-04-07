@@ -18,6 +18,17 @@ pub struct Account {
     pub id: u8,
     pub name: String,
     pub fields: Vec<Field>,
+    pub seed: Option<AccountSeed>,
+}
+
+pub struct AccountSeed {
+    pub bump: bool,
+    pub seeds: Vec<Seed>,
+}
+
+pub enum Seed {
+    Defined(String),
+    Input(String),
 }
 
 pub struct Field {
@@ -37,14 +48,8 @@ pub struct InstructionAccount {
     pub name: String,
     pub state: IxAccountState,
     pub is_signed: bool,
-    pub seed: Option<InstructionAccountSeed>,
+    pub seed: Option<Vec<String>>,
     pub payload: Option<String>,
-}
-
-pub struct InstructionAccountSeed {
-    pub is_bump: bool,
-    pub inputs: Vec<String>,
-    pub func: String,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -110,6 +115,20 @@ impl From<config::Config> for MyIdl {
                             })
                             .collect(),
                     },
+                    seed: acc.seed.map(|seed| AccountSeed {
+                        bump: seed.bump,
+                        seeds: seed
+                            .func
+                            .func
+                            .into_iter()
+                            .map(|s| match s {
+                                config::SeedType::Defined(s) => Seed::Defined(s),
+                                config::SeedType::Input(i) => {
+                                    Seed::Input(seed.func.inputs[i].clone())
+                                }
+                            })
+                            .collect(),
+                    }),
                 })
                 .collect(),
             instructions: {
@@ -136,7 +155,7 @@ impl From<config::Config> for MyIdl {
                         (false, false) => IxAccountState::ReadOnly,
                     },
                     is_signed: acc.signed,
-                    seed: None,
+                    seed: acc.seed,
                     payload: acc.r#type,
                 })
                 .collect(),
