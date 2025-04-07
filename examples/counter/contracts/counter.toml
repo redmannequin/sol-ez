@@ -7,6 +7,7 @@ version = [0, 1, 0]
 ################################################################################
 
 [accounts.count]
+id = 0
 bump = true
 seed = "[user] => hello + user"
 
@@ -27,29 +28,35 @@ discriminator_type = "hash"
 ################################################################################
 # Initalize Instruction
 ################################################################################
+[ix.initalize]
+id = 0
 
 [ix.initalize.args]
 amount = "u8"
 
 [ix.initalize.accounts]
-user = { idx = 0, mutable = true, signed = true }
-count = { idx = 1, type = "count", create = true, seed = ["user"] }
+user = { id = 0, mutable = true, signed = true }
+count = { id = 1, type = "count", create = true, seed = ["user"] }
 
 ################################################################################
 # Increment Instruction
 ################################################################################
+[ix.increment]
+id = 1
 
 [ix.increment.accounts]
-user = { idx = 0, mutable = true, signed = true }
-count = { idx = 1, type = "count", mutable = true, seed = ["user"] }
+user = { id = 0, mutable = true, signed = true }
+count = { id = 1, type = "count", mutable = true, seed = ["user"] }
 
 ################################################################################
 # Close Instruction
 ################################################################################
+[ix.close]
+id = 2
 
 [ix.close.accounts]
-user = { idx = 0, mutable = true, signed = true }
-count = { idx = 1, type = "count", mutable = true, seed = ["user"] }
+user = { id = 0, mutable = true, signed = true }
+count = { id = 1, type = "count", mutable = true, seed = ["user"] }
 
 ################################################################################
 

@@ -4,14 +4,16 @@ use std::{
 };
 
 use anyhow::Context;
+use codegen::contract::gen_from_config;
 use error::SolGenError;
-use gen_contract::gen_program_from_config;
 use serde::Deserialize;
 
+pub mod codegen;
 pub mod config;
+pub mod discriminator;
 pub mod error;
-pub mod gen_contract;
 pub mod idl;
+pub mod my_idl;
 
 pub fn generate2(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
     let mut fp = File::open(src_path)?;
@@ -22,7 +24,7 @@ pub fn generate2(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
         .context("failed to parse config")?;
     config.validate()?;
 
-    let code = gen_program_from_config(config);
+    let code = gen_from_config(config)?;
 
     let code_file = syn::parse2(code).context("failed to parse token stream")?;
     let code_src = prettyplease::unparse(&code_file);

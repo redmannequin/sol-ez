@@ -20,21 +20,21 @@ impl Config {
         for (ix_name, ix) in self.ix.iter() {
             let mut idxs = vec![0; ix.accounts.len()];
             for (acc_name, acc) in ix.accounts.iter() {
-                if idxs[acc.idx] == 1 {
+                if idxs[acc.id] == 1 {
                     Err(anyhow::anyhow!(
-                        "duplicate idx in {} accounts({})",
+                        "duplicate id in {} accounts({})",
                         ix_name,
                         acc_name
                     ))?;
                 } else if acc.create && (acc.mutable | acc.signed) {
                     Err(anyhow::anyhow!(
-                        "idx({}) account({}) cant be create and mutable or signed",
+                        "id({}) account({}) cant be create and mutable or signed",
                         ix_name,
                         acc_name
                     ))?;
                 } else if let Some(ty) = &acc.r#type {
                     let _account_def = self.accounts.get(ty).ok_or(anyhow::anyhow!(
-                        "idx({}) account({}) type {} not defined",
+                        "id({}) account({}) type {} not defined",
                         ix_name,
                         acc_name,
                         ty
@@ -42,7 +42,7 @@ impl Config {
 
                     // TODO check seed params from accounts and account seed
                 }
-                idxs[acc.idx] = 1;
+                idxs[acc.id] = 1;
             }
         }
 
@@ -58,6 +58,7 @@ pub struct Program {
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct Ix {
+    pub id: usize,
     #[serde(default)]
     pub args: BTreeMap<String, Type>,
     pub accounts: BTreeMap<String, IxAccount>,
@@ -78,7 +79,7 @@ pub enum DiscriminatorType {
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct IxAccount {
-    pub idx: usize,
+    pub id: usize,
     #[serde(default)]
     pub create: bool,
     #[serde(default)]
@@ -93,8 +94,7 @@ pub struct IxAccount {
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct Account {
-    pub bump: bool,
-    pub seed: String,
+    pub id: usize,
     pub payload: Message,
 }
 
@@ -104,7 +104,7 @@ pub enum Message {
     Struct(BTreeMap<String, Type>),
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Type {
     Bool,
