@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
 
-use crate::{error::SolGenError, idl};
+use crate::error::SolGenError;
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 pub struct Config {
@@ -195,108 +195,4 @@ pub enum Type {
     FixedArray(Box<Type>, usize),
     DynamicArray(Box<Type>),
     Defined(String),
-}
-
-impl<'src> From<&'src Config> for idl::Idl<'src> {
-    fn from(value: &'src Config) -> Self {
-        idl::Idl {
-            version: idl::Version {
-                major: value.program.version.0,
-                minor: value.program.version.1,
-                patch: value.program.version.2,
-            },
-            name: value.program.name.as_str(),
-            constants: vec![],
-            accounts: value
-                .accounts
-                .iter()
-                .map(|(name, account)| idl::Account {
-                    name,
-                    discriminator: None,
-                    r#type: match &account.payload {
-                        Message::Struct(fields) => idl::AccountDef {
-                            kind: "struct",
-                            fields: fields
-                                .iter()
-                                .map(|(name, ty)| idl::StructTypeDefField {
-                                    name,
-                                    r#type: ty.into(),
-                                })
-                                .collect(),
-                        },
-                    },
-                })
-                .collect(),
-            instructions: value
-                .ix
-                .iter()
-                .map(|(name, ix)| idl::Instruction {
-                    name,
-                    discriminator: None,
-                    accounts: ix
-                        .accounts
-                        .iter()
-                        .map(|(name, acc)| idl::InstructionAccount {
-                            name,
-                            is_mutable: acc.mutable,
-                            is_signer: acc.signed,
-                        })
-                        .collect(),
-                    args: ix
-                        .args
-                        .iter()
-                        .map(|(name, ty)| idl::InstructionArg {
-                            name,
-                            r#type: ty.into(),
-                        })
-                        .collect(),
-                })
-                .collect(),
-            types: value
-                .message
-                .iter()
-                .map(|(name, ty)| idl::TypeDef {
-                    name,
-                    r#type: match ty {
-                        Message::Struct(fields) => idl::TypeDefKind::Struct(idl::StructTypeDef {
-                            fields: fields
-                                .iter()
-                                .map(|(name, ty)| idl::StructTypeDefField {
-                                    name,
-                                    r#type: ty.into(),
-                                })
-                                .collect(),
-                        }),
-                    },
-                })
-                .collect(),
-            events: vec![],
-            errors: vec![],
-        }
-    }
-}
-
-impl<'src> From<&'src Type> for idl::Type<'src> {
-    fn from(value: &'src Type) -> Self {
-        match value {
-            Type::Bool => idl::Type::Bool,
-            Type::U8 => idl::Type::U8,
-            Type::U16 => idl::Type::U16,
-            Type::U32 => idl::Type::U32,
-            Type::U64 => idl::Type::U64,
-            Type::U128 => idl::Type::U128,
-            Type::I8 => idl::Type::I8,
-            Type::I16 => idl::Type::I16,
-            Type::I32 => idl::Type::I32,
-            Type::I64 => idl::Type::I64,
-            Type::I128 => idl::Type::I128,
-            Type::Bytes => idl::Type::Bytes,
-            Type::String => idl::Type::String,
-            Type::PublicKey => idl::Type::PublicKey,
-            Type::Option(ty) => idl::Type::Option(Box::new(ty.as_ref().into())),
-            Type::FixedArray(ty, n) => idl::Type::FixedArray(Box::new(ty.as_ref().into()), *n),
-            Type::DynamicArray(ty) => idl::Type::DynamicArray(Box::new(ty.as_ref().into())),
-            Type::Defined(ty) => idl::Type::Defined(ty),
-        }
-    }
 }
