@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # local
 sol-derive = { workspace = true }
+sol-gen-common = { workspace = true }
 
 # external
 anyhow = { workspace = true }

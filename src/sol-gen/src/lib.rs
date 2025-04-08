@@ -5,15 +5,11 @@ use std::{
 
 use anyhow::Context;
 use codegen::contract::gen_from_config;
-use error::SolGenError;
 use serde::Deserialize;
+use sol_gen_common::{config, error::SolGenError};
 
 pub mod codegen;
-pub mod config;
-pub mod discriminator;
-pub mod error;
 pub mod idl;
-pub mod my_idl;
 
 pub fn generate2(src_path: &str, out_path: &str) -> Result<(), SolGenError> {
     let mut fp = File::open(src_path)?;

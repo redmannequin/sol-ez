@@ -1,5 +1,11 @@
 [workspace]
-members = ["examples/counter", "src/sol-derive", "src/sol-ez", "src/sol-gen"]
+members = [
+    "examples/counter",
+    "src/sol-derive",
+    "src/sol-ez",
+    "src/sol-gen",
+    "src/sol-gen-common",
+]
 resolver = "3"
 
 [workspace.dependencies]
@@ -7,6 +13,7 @@ resolver = "3"
 sol-derive = { path = "src/sol-derive" }
 sol-ez = { path = "src/sol-ez" }
 sol-gen = { path = "src/sol-gen" }
+sol-gen-common = { path = "src/sol-gen-common" }
 
 # external
 anyhow = "1.0"
@@ -22,6 +29,7 @@ toml = "0.8"
 
 # code gen libs
 convert_case = "0.8"
+deluxe = "0.5"
 prettyplease = "0.2"
 proc-macro2 = "1.0"
 quote = "1.0"

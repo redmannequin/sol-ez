@@ -1,0 +1,12 @@
+[package]
+name = "sol-gen-common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# external
+anyhow = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }

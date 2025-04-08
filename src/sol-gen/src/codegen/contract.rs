@@ -1,20 +1,20 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
-
-use crate::{
-    config::Config,
+use sol_gen_common::{
     discriminator::{DiscriminatorGen, HashDiscriminatorGen},
     error::SolGenError,
     my_idl::{Account, InstructionAccount, IxAccountState, MyIdl, Type},
 };
+
+use crate::config::Config;
 
 pub fn gen_from_config(config: Config) -> Result<TokenStream, SolGenError> {
     let idl = config.into();
 
     let dispatcher = gen_dispatcher::<HashDiscriminatorGen>(&idl)?;
     let contract = gen_contract(&idl);
-    let types = gen_types(&idl);
+    let types = gen_types::<HashDiscriminatorGen>(&idl);
 
     Ok(quote! {
         use core::marker::PhantomData;
@@ -139,8 +139,15 @@ pub fn gen_contract(idl: &MyIdl) -> TokenStream {
     }
 }
 
-pub fn gen_types(idl: &MyIdl) -> TokenStream {
-    let account_types = idl.accounts.iter().map(gen_account);
+pub fn gen_types<D>(idl: &MyIdl) -> TokenStream
+where
+    D: DiscriminatorGen,
+    D::Seed: quote::ToTokens,
+{
+    let account_types = idl
+        .accounts
+        .iter()
+        .map(|acc| gen_account::<D>(&idl.name, acc));
     let accounts_types = idl
         .instructions
         .iter()
@@ -228,15 +235,26 @@ fn gen_accounts(ix_name: &str, accounts: &[InstructionAccount]) -> TokenStream {
     }
 }
 
-fn gen_account(account: &Account) -> TokenStream {
+fn gen_account<D>(program_name: &str, account: &Account) -> TokenStream
+where
+    D: DiscriminatorGen,
+    D::Seed: quote::ToTokens,
+{
     let account_name = str_to_struct_name(&account.name, None);
     let account_fields = account.fields.iter().map(|field| {
         let field_name = str_to_field_name(&field.name);
         let ty = gen_type(&field.ty);
         quote! { pub #field_name: #ty }
     });
+    let discriminator_seed = {
+        let seed = D::account_seed(program_name, account);
+        quote! { #seed }
+    };
+
+    // TODO load discriminator seed size from config
     quote! {
         #[derive(BorshSerialize, BorshDeserialize, AccountData)]
+        #[account_data(hash(seed = #discriminator_seed,  size = 8))]
         pub struct #account_name {
             #( #account_fields )*
         }
