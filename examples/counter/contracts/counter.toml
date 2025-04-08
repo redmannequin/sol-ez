@@ -30,9 +30,7 @@ discriminator_type = "hash"
 ################################################################################
 [ix.initalize]
 id = 0
-
-[ix.initalize.args]
-amount = "u8"
+args = { amount = "u8" }
 
 [ix.initalize.accounts]
 user = { id = 0, mutable = true, signed = true }
