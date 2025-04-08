@@ -3,7 +3,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use sol_ez::{account::*, account_info::*, AccountData, DataSize};
 use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
 #[derive(BorshSerialize, BorshDeserialize, AccountData)]
-#[account_data(hash(seed = "counter|account|count", size = 8))]
+#[account_data(hash(seed = "counter|account|count", size = 4usize))]
 pub struct Count {
     pub value: u8,
 }

@@ -15,9 +15,23 @@ use crate::account_info::{
 
 use super::Account;
 
+pub trait Discriminator {
+    const SIZE: usize;
+    fn as_bytes(&self) -> &[u8];
+}
+
+impl<const N: usize> Discriminator for [u8; N] {
+    const SIZE: usize = N;
+
+    fn as_bytes(&self) -> &[u8] {
+        self
+    }
+}
+
 pub trait AccountData {
     const SIZE: usize;
-    const DISCRIMINATOR: [u8; 8];
+    const DISCRIMINATOR: Self::DiscriminatorKind;
+    type DiscriminatorKind: Discriminator;
 
     fn deserialize<'info, M, S>(
         account_info: &AccountInfo<'info, M, S>,
@@ -27,8 +41,8 @@ pub trait AccountData {
         M: AccountRead,
     {
         let bytes = account_info.data();
-        let (discriminator, data) = bytes.split_at(8);
-        if discriminator != Self::DISCRIMINATOR {
+        let (discriminator, data) = bytes.split_at(Self::DiscriminatorKind::SIZE);
+        if discriminator != Self::DISCRIMINATOR.as_bytes() {
             return Err(ProgramError::InvalidAccountData);
         }
         Ok(Self::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?)
@@ -43,8 +57,8 @@ pub trait AccountData {
         M: AccountWrite,
     {
         let account_data = &mut account_info.data_mut()[..];
-        let (discriminator, mut data) = account_data.split_at_mut(8);
-        discriminator.copy_from_slice(&Self::DISCRIMINATOR);
+        let (discriminator, mut data) = account_data.split_at_mut(Self::DiscriminatorKind::SIZE);
+        discriminator.copy_from_slice(Self::DISCRIMINATOR.as_bytes());
         BorshSerialize::serialize(&self, &mut data).map_err(|_err| ProgramError::BorshIoError)?;
         Ok(())
     }

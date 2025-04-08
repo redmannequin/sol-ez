@@ -97,6 +97,13 @@ pub struct Account {
     pub id: usize,
     pub payload: Message,
     pub seed: Option<AccountSeed>,
+    pub discriminator: Option<AccountDiscriminator>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum AccountDiscriminator {
+    Hash { size: u8 },
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize)]

@@ -246,15 +246,14 @@ where
         let ty = gen_type(&field.ty);
         quote! { pub #field_name: #ty }
     });
-    let discriminator_seed = {
-        let seed = D::account_seed(program_name, account);
-        quote! { #seed }
-    };
+    let discriminator_seed = D::account_seed(program_name, account);
+    let discriminator_size = account.discriminator.as_ref().map(|d| d.size).unwrap_or(4) as usize;
 
-    // TODO load discriminator seed size from config
+    // TODO don't add discriminator if not defined
+
     quote! {
         #[derive(BorshSerialize, BorshDeserialize, AccountData)]
-        #[account_data(hash(seed = #discriminator_seed,  size = 8))]
+        #[account_data(hash(seed = #discriminator_seed,  size = #discriminator_size))]
         pub struct #account_name {
             #( #account_fields )*
         }

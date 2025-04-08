@@ -19,6 +19,11 @@ pub struct Account {
     pub name: String,
     pub fields: Vec<Field>,
     pub seed: Option<AccountSeed>,
+    pub discriminator: Option<AccountDiscriminator>,
+}
+
+pub struct AccountDiscriminator {
+    pub size: u8,
 }
 
 pub struct AccountSeed {
@@ -92,6 +97,78 @@ pub enum Type {
 
 impl From<config::Config> for MyIdl {
     fn from(value: config::Config) -> Self {
+        let accounts = value
+            .accounts
+            .into_iter()
+            .map(|(name, acc)| Account {
+                id: acc.id as u8,
+                name,
+                fields: match acc.payload {
+                    config::Message::Struct(fields) => fields
+                        .into_iter()
+                        .map(|(name, ty)| Field {
+                            name: name.to_string(),
+                            ty: ty.into(),
+                        })
+                        .collect(),
+                },
+                seed: acc.seed.map(|seed| AccountSeed {
+                    bump: seed.bump,
+                    seeds: seed
+                        .func
+                        .func
+                        .into_iter()
+                        .map(|s| match s {
+                            config::SeedType::Defined(s) => Seed::Defined(s),
+                            config::SeedType::Input(i) => Seed::Input(seed.func.inputs[i].clone()),
+                        })
+                        .collect(),
+                }),
+                discriminator: acc.discriminator.map(|d| match d {
+                    config::AccountDiscriminator::Hash { size } => AccountDiscriminator { size },
+                }),
+            })
+            .collect();
+
+        let instructions = {
+            let mut sorted = value.ix.into_iter().map(|x| x).collect::<Vec<_>>();
+            sorted.sort_by(|a, b| a.1.id.cmp(&b.1.id));
+            sorted
+        }
+        .into_iter()
+        .map(|(name, ix)| Instruction {
+            id: ix.id as u8,
+            name,
+            accounts: {
+                let mut sorted = ix.accounts.into_iter().map(|x| x).collect::<Vec<_>>();
+                sorted.sort_by(|a, b| a.1.id.cmp(&b.1.id));
+                sorted
+            }
+            .into_iter()
+            .map(|(name, acc)| InstructionAccount {
+                id: acc.id as u8,
+                name,
+                state: match (acc.create, acc.mutable) {
+                    (true, _) => IxAccountState::Create,
+                    (false, true) => IxAccountState::Mutable,
+                    (false, false) => IxAccountState::ReadOnly,
+                },
+                is_signed: acc.signed,
+                seed: acc.seed,
+                payload: acc.r#type,
+            })
+            .collect(),
+            args: ix
+                .args
+                .iter()
+                .map(|field| Field {
+                    name: field.0.to_string(),
+                    ty: Type::from(field.1.clone()),
+                })
+                .collect(),
+        })
+        .collect();
+
         MyIdl {
             version: Version {
                 major: value.program.version.0,
@@ -100,75 +177,8 @@ impl From<config::Config> for MyIdl {
             },
             name: value.program.name,
             instruction_discriminator_size: value.ix_config.discriminator_size as usize,
-            accounts: value
-                .accounts
-                .into_iter()
-                .map(|(name, acc)| Account {
-                    id: acc.id as u8,
-                    name,
-                    fields: match acc.payload {
-                        config::Message::Struct(fields) => fields
-                            .into_iter()
-                            .map(|(name, ty)| Field {
-                                name: name.to_string(),
-                                ty: ty.into(),
-                            })
-                            .collect(),
-                    },
-                    seed: acc.seed.map(|seed| AccountSeed {
-                        bump: seed.bump,
-                        seeds: seed
-                            .func
-                            .func
-                            .into_iter()
-                            .map(|s| match s {
-                                config::SeedType::Defined(s) => Seed::Defined(s),
-                                config::SeedType::Input(i) => {
-                                    Seed::Input(seed.func.inputs[i].clone())
-                                }
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-            instructions: {
-                let mut sorted = value.ix.into_iter().map(|x| x).collect::<Vec<_>>();
-                sorted.sort_by(|a, b| a.1.id.cmp(&b.1.id));
-                sorted
-            }
-            .into_iter()
-            .map(|(name, ix)| Instruction {
-                id: ix.id as u8,
-                name,
-                accounts: {
-                    let mut sorted = ix.accounts.into_iter().map(|x| x).collect::<Vec<_>>();
-                    sorted.sort_by(|a, b| a.1.id.cmp(&b.1.id));
-                    sorted
-                }
-                .into_iter()
-                .map(|(name, acc)| InstructionAccount {
-                    id: acc.id as u8,
-                    name,
-                    state: match (acc.create, acc.mutable) {
-                        (true, _) => IxAccountState::Create,
-                        (false, true) => IxAccountState::Mutable,
-                        (false, false) => IxAccountState::ReadOnly,
-                    },
-                    is_signed: acc.signed,
-                    seed: acc.seed,
-                    payload: acc.r#type,
-                })
-                .collect(),
-                args: ix
-                    .args
-                    .iter()
-                    .map(|field| Field {
-                        name: field.0.to_string(),
-                        ty: Type::from(field.1.clone()),
-                    })
-                    .collect(),
-            })
-            .collect(),
+            accounts,
+            instructions,
         }
     }
 }

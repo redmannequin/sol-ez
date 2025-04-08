@@ -8,10 +8,8 @@ version = [0, 1, 0]
 
 [accounts.count]
 id = 0
-
-[accounts.count.seed]
-bump = true
-func = "[user] => 'hello' + user"
+discriminator = { kind = "hash", size = 4 }
+seed = { func = "[user] => 'count' + user", bump = true }
 
 [accounts.count.payload]
 type = "struct"
