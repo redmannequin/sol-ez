@@ -15,6 +15,25 @@ pub trait DataSize {
     const SIZE: usize;
 }
 
+/// A high-level wrapper around `AccountInfo` that provides data deserialization,
+/// serialization, and additional convenience methods for interacting with accounts.
+///
+/// The `Account` struct builds on the `AccountInfo` wrapper by adding support for
+/// deserializing and serializing account data, providing easier access to mutable
+/// or immutable account data, and handling high-level account operations like validation
+/// or initialization.
+///
+/// ## Type Parameters
+///
+/// - `'info`: The lifetime of the underlying account.
+/// - `T`: The type of the account's data (typically a struct that can be deserialized).
+/// - `P`: The account's access level:
+///     - [`Init`]: The account is uninitialized and will be created.
+///     - [`Mutable`]: The account is already initialized and writable.
+///     - [`Immutable`]: The account is read-only.
+/// - `S`: The signer constraint:
+///     - [`Signed`]: The account must be signed.
+///     - [`Unsigned`]: No signature constraint.
 pub struct Account<'info, T, P, S> {
     pub(crate) inner: T,
     pub(crate) account_info: AccountInfo<'info, P, S>,

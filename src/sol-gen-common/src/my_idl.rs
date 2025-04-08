@@ -60,7 +60,7 @@ pub struct InstructionAccount {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum IxAccountState {
     Create,
-    ReadOnly,
+    Immutable,
     Mutable,
 }
 
@@ -151,7 +151,7 @@ impl From<config::Config> for MyIdl {
                 state: match (acc.create, acc.mutable) {
                     (true, _) => IxAccountState::Create,
                     (false, true) => IxAccountState::Mutable,
-                    (false, false) => IxAccountState::ReadOnly,
+                    (false, false) => IxAccountState::Immutable,
                 },
                 is_signed: acc.signed,
                 seed: acc.seed,

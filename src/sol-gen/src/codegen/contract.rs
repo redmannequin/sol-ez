@@ -171,7 +171,7 @@ fn gen_accounts(ix_name: &str, accounts: &[InstructionAccount]) -> TokenStream {
 
         let state = match acc.state {
             IxAccountState::Create => str_to_struct_name("Init", None),
-            IxAccountState::ReadOnly => str_to_struct_name("ReadOnly", None),
+            IxAccountState::Immutable => str_to_struct_name("Immutable", None),
             IxAccountState::Mutable => str_to_struct_name("Mutable", None),
         };
 

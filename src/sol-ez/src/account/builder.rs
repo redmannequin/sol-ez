@@ -4,7 +4,7 @@ use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
 use crate::account_info::{
-    AccountInfo, Empty, Mutable, ReadOnly, Signed, Unsigned, account_access_triat::AccountRead,
+    AccountInfo, Empty, Immutable, Mutable, Signed, Unsigned, account_access_triat::AccountRead,
 };
 
 use super::{Account, AccountData};
@@ -18,7 +18,7 @@ pub struct AccountBuilder<'info, T, M, S> {
     signed: PhantomData<S>,
 }
 
-impl<'info> AccountBuilder<'info, Empty, ReadOnly, Unsigned> {
+impl<'info> AccountBuilder<'info, Empty, Immutable, Unsigned> {
     pub fn new(account_info: &'info pinocchio::account_info::AccountInfo) -> Self {
         Self {
             account_info,
@@ -62,7 +62,7 @@ impl<'info, M, S> AccountBuilder<'info, Empty, M, S> {
     }
 }
 
-impl<'info, T, S> AccountBuilder<'info, T, ReadOnly, S> {
+impl<'info, T, S> AccountBuilder<'info, T, Immutable, S> {
     pub fn mutable(self) -> Result<AccountBuilder<'info, T, Mutable, S>, ProgramError> {
         if self.account_info.is_writable() {
             return Err(ProgramError::Immutable);

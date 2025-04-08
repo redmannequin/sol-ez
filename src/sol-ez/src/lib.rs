@@ -1,3 +1,5 @@
+//! A Solana Rust Framework
+
 #![no_std]
 use pinocchio::{ProgramResult, account_info::AccountInfo, pubkey::Pubkey};
 

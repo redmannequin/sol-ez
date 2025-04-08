@@ -9,7 +9,7 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 
 use crate::account_info::{
-    AccountInfo, Init, ReadOnly, Signed, Unsigned,
+    AccountInfo, Immutable, Init, Signed, Unsigned,
     account_access_triat::{AccountRead, AccountWrite},
 };
 
@@ -94,7 +94,7 @@ where
         &mut self.inner
     }
 
-    pub fn apply(mut self) -> Result<Account<'info, T, ReadOnly, S>, ProgramError>
+    pub fn apply(mut self) -> Result<Account<'info, T, Immutable, S>, ProgramError>
     where
         T: BorshSerialize,
         P: AccountWrite,
@@ -140,7 +140,7 @@ where
         account: T,
         payer: &mut Account<'info, P, PA, PS>,
         owner: &Pubkey,
-    ) -> Result<Account<'info, T, ReadOnly, Unsigned>, ProgramError>
+    ) -> Result<Account<'info, T, Immutable, Unsigned>, ProgramError>
     where
         T: BorshSerialize,
         PA: AccountWrite,
