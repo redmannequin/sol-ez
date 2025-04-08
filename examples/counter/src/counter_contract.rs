@@ -5,6 +5,7 @@ use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
 #[derive(BorshSerialize, BorshDeserialize, AccountData)]
 #[account_data(hash(seed = "counter|account|count", size = 4usize))]
 pub struct Count {
+    pub authority: [u8; 32],
     pub value: u8,
 }
 pub struct InitalizeAccounts<'info> {

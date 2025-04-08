@@ -13,7 +13,7 @@ seed = { func = "[user] => 'count' + user", bump = true }
 
 [accounts.count.payload]
 type = "struct"
-data = { value = "u8" }
+data = { authority = "public_key", value = "u8" }
 
 ################################################################################
 

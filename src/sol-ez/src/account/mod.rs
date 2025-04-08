@@ -77,6 +77,10 @@ impl<'info, T, P, S> Account<'info, T, P, S> {
     }
 }
 
+impl<const N: usize> DataSize for [u8; N] {
+    const SIZE: usize = N;
+}
+
 macro_rules! impl_data_size {
     ($ty:ty => $size:literal) => {
         impl DataSize for $ty {

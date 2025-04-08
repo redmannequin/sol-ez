@@ -255,7 +255,7 @@ where
         #[derive(BorshSerialize, BorshDeserialize, AccountData)]
         #[account_data(hash(seed = #discriminator_seed,  size = #discriminator_size))]
         pub struct #account_name {
-            #( #account_fields )*
+            #( #account_fields, )*
         }
     }
 }
