@@ -1,10 +1,7 @@
 pub use pda::AccountData;
 use pinocchio::pubkey::Pubkey;
 
-use crate::account_info::{
-    AccountInfo,
-    account_access_triat::{AccountRead, AccountWrite},
-};
+use crate::account_info::{AccountInfo, AccountRead, AccountWrite};
 
 pub use builder::AccountBuilder;
 

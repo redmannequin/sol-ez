@@ -9,8 +9,7 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 
 use crate::account_info::{
-    AccountInfo, Immutable, Init, Signed, Unsigned,
-    account_access_triat::{AccountRead, AccountWrite},
+    AccountInfo, AccountRead, AccountWrite, Immutable, Init, Signed, Unsigned,
 };
 
 use super::Account;

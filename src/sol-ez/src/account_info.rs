@@ -1,6 +1,5 @@
 use core::marker::PhantomData;
 
-use account_access_triat::{AccountRead, AccountWrite};
 pub use markers::{Empty, Immutable, Init, Mutable, Signed, Unsigned};
 
 mod pinocchio {
@@ -10,17 +9,25 @@ mod pinocchio {
         pubkey::Pubkey,
     };
 }
-/// Traits used as markers for account access types.
+/// Sealed Traits used as markers for account access types.
 ///
 /// These traits serve as markers for Solana account access levels in the context of
 /// the [`AccountInfo`] struct. The traits allow compile-time enforcement of whether
 /// an account can be **read** or **written** to, based on its associated marker.
-pub(crate) mod account_access_triat {
+mod sealed_access_triat {
     /// Marker trait indicating that an account can be **read** but not modified.
-    pub trait AccountRead {}
+    pub trait Read {}
     /// Marker trait indicating that an account can be **written** to (modified).
-    pub trait AccountWrite {}
+    pub trait Write {}
 }
+
+/// Marker trait indicating that an account can be **read** but not modified.
+pub trait AccountRead: sealed_access_triat::Read {}
+/// Marker trait indicating that an account can be **written** to (modified).
+pub trait AccountWrite: sealed_access_triat::Write {}
+
+impl<T: sealed_access_triat::Read> AccountRead for T {}
+impl<T: sealed_access_triat::Write> AccountWrite for T {}
 
 /// Account markers.
 ///
@@ -31,7 +38,7 @@ pub(crate) mod account_access_triat {
 /// guarantees about an account's access rights and constraints, helping to enforce correct access
 /// patterns and prevent misuse.
 pub mod markers {
-    use super::account_access_triat::{AccountRead, AccountWrite};
+    use super::sealed_access_triat::{Read, Write};
 
     /// Account initialization marker.
     ///
@@ -103,10 +110,10 @@ pub mod markers {
     ///   be managed in the program's state.
     pub struct Empty;
 
-    impl AccountRead for Immutable {}
-    impl AccountRead for Mutable {}
-    impl AccountWrite for Init {}
-    impl AccountWrite for Mutable {}
+    impl Read for Immutable {}
+    impl Read for Mutable {}
+    impl Write for Init {}
+    impl Write for Mutable {}
 }
 
 /// Internal guard that ensures a Solana account is only wrapped once.

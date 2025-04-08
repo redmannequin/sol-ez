@@ -3,9 +3,7 @@ use core::marker::PhantomData;
 use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
-use crate::account_info::{
-    AccountInfo, Empty, Immutable, Mutable, Signed, Unsigned, account_access_triat::AccountRead,
-};
+use crate::account_info::{AccountInfo, AccountRead, Empty, Immutable, Mutable, Signed, Unsigned};
 
 use super::{Account, AccountData};
 
