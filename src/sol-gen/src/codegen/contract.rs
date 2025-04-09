@@ -169,23 +169,17 @@ fn gen_accounts(ix_name: &str, accounts: &[InstructionAccount]) -> TokenStream {
             .map(|p| str_to_struct_name(&p, None))
             .unwrap_or_else(|| str_to_struct_name("empty", None));
 
-        let state = match acc.state {
-            IxAccountState::Create => str_to_struct_name("Init", None),
-            IxAccountState::Immutable => str_to_struct_name("Immutable", None),
-            IxAccountState::Mutable => str_to_struct_name("Mutable", None),
+        let account_state = match (acc.state, acc.is_signed) {
+            (IxAccountState::Create, _) => {
+                return  quote! { pub #field_name: Account<'info, PhantomData<#account_type>, Init, Unsigned> };
+            },
+            (IxAccountState::Immutable, true) => str_to_struct_name("AccountReadOnlySigned", None),
+            (IxAccountState::Immutable, false) => str_to_struct_name("AccountReadOnly", None),
+            (IxAccountState::Mutable, true) => str_to_struct_name("AccountWritableSigned", None),
+            (IxAccountState::Mutable, false) => str_to_struct_name("AccountWritable", None),
         };
 
-        let signed = if acc.is_signed {
-            str_to_struct_name("Signed", None)
-        } else {
-            str_to_struct_name("Unsigned", None)
-        };
-
-        if acc.state.is_create() {
-            quote! { pub #field_name: Account<'info, PhantomData<#account_type>, #state, #signed> }
-        } else {
-            quote! { pub #field_name: Account<'info, #account_type, #state, #signed> }
-        }
+        quote! { pub #field_name: #account_state<'info, #account_type> }
     });
 
     let load = accounts.iter().map(|acc| {

@@ -17,8 +17,8 @@ pub struct ClaimConfig {
     pub token_id: [u8; 32],
 }
 pub struct CreateClaimAccounts<'info> {
-    pub manager_authority: Account<'info, Empty, Mutable, Signed>,
-    pub claim_config: Account<'info, ClaimConfig, Immutable, Unsigned>,
+    pub manager_authority: AccountWritableSigned<'info, Empty>,
+    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
     pub claim: Account<'info, PhantomData<Claim>, Init, Unsigned>,
 }
 impl<'info> CreateClaimAccounts<'info> {
@@ -46,9 +46,9 @@ impl<'info> CreateClaimAccounts<'info> {
     }
 }
 pub struct UpdateClaimAccounts<'info> {
-    pub manager_authority: Account<'info, Empty, Immutable, Signed>,
-    pub claim_config: Account<'info, ClaimConfig, Immutable, Unsigned>,
-    pub claim: Account<'info, Claim, Mutable, Unsigned>,
+    pub manager_authority: AccountReadOnlySigned<'info, Empty>,
+    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
+    pub claim: AccountWritable<'info, Claim>,
 }
 impl<'info> UpdateClaimAccounts<'info> {
     pub fn load(
@@ -75,11 +75,11 @@ impl<'info> UpdateClaimAccounts<'info> {
     }
 }
 pub struct ClaimAccounts<'info> {
-    pub claim_authority: Account<'info, Empty, Mutable, Unsigned>,
-    pub claim_config: Account<'info, ClaimConfig, Immutable, Unsigned>,
-    pub claim: Account<'info, Claim, Mutable, Unsigned>,
-    pub manager_authority: Account<'info, Empty, Immutable, Unsigned>,
-    pub user_authority: Account<'info, Empty, Immutable, Signed>,
+    pub claim_authority: AccountWritable<'info, Empty>,
+    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
+    pub claim: AccountWritable<'info, Claim>,
+    pub manager_authority: AccountReadOnly<'info, Empty>,
+    pub user_authority: AccountReadOnlySigned<'info, Empty>,
 }
 impl<'info> ClaimAccounts<'info> {
     pub fn load(
@@ -115,7 +115,7 @@ impl<'info> ClaimAccounts<'info> {
     }
 }
 pub struct CreateConfigAccounts<'info> {
-    pub manager_authority: Account<'info, Empty, Mutable, Signed>,
+    pub manager_authority: AccountWritableSigned<'info, Empty>,
     pub claim_config: Account<'info, PhantomData<ClaimConfig>, Init, Unsigned>,
 }
 impl<'info> CreateConfigAccounts<'info> {
@@ -138,8 +138,8 @@ impl<'info> CreateConfigAccounts<'info> {
     }
 }
 pub struct UpdateConfigAccounts<'info> {
-    pub manager_authority: Account<'info, Empty, Immutable, Signed>,
-    pub claim_config: Account<'info, ClaimConfig, Mutable, Unsigned>,
+    pub manager_authority: AccountReadOnlySigned<'info, Empty>,
+    pub claim_config: AccountWritable<'info, ClaimConfig>,
 }
 impl<'info> UpdateConfigAccounts<'info> {
     pub fn load(

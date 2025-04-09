@@ -9,7 +9,7 @@ pub struct Count {
     pub value: u8,
 }
 pub struct InitalizeAccounts<'info> {
-    pub user: Account<'info, Empty, Mutable, Signed>,
+    pub user: AccountWritableSigned<'info, Empty>,
     pub count: Account<'info, PhantomData<Count>, Init, Unsigned>,
 }
 impl<'info> InitalizeAccounts<'info> {
@@ -32,8 +32,8 @@ impl<'info> InitalizeAccounts<'info> {
     }
 }
 pub struct IncrementAccounts<'info> {
-    pub user: Account<'info, Empty, Mutable, Signed>,
-    pub count: Account<'info, Count, Mutable, Unsigned>,
+    pub user: AccountWritableSigned<'info, Empty>,
+    pub count: AccountWritable<'info, Count>,
 }
 impl<'info> IncrementAccounts<'info> {
     pub fn load(
@@ -56,8 +56,8 @@ impl<'info> IncrementAccounts<'info> {
     }
 }
 pub struct CloseAccounts<'info> {
-    pub user: Account<'info, Empty, Mutable, Signed>,
-    pub count: Account<'info, Count, Mutable, Unsigned>,
+    pub user: AccountWritableSigned<'info, Empty>,
+    pub count: AccountWritable<'info, Count>,
 }
 impl<'info> CloseAccounts<'info> {
     pub fn load(

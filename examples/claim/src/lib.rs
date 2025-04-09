@@ -7,8 +7,8 @@ use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::
 use pinocchio_log::log;
 use sol_ez::{
     Contract,
-    account::Account,
-    account_info::{AccountRead, Empty, Signed},
+    account::{AccountReadOnly, AccountSigned, AccountUnsigned, AccountWritable},
+    account_info::{AccountRead, Empty},
 };
 
 mod claim_contract;
@@ -100,9 +100,9 @@ impl ClaimContract for MyClaim {
     }
 }
 
-pub fn validate_config_manager<S>(
-    config: &Account<ClaimConfig, impl AccountRead, S>,
-    manager: &Account<Empty, impl AccountRead, Signed>,
+pub fn validate_config_manager(
+    config: &AccountUnsigned<ClaimConfig, impl AccountRead>,
+    manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
     if config.as_ref().manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
@@ -110,9 +110,9 @@ pub fn validate_config_manager<S>(
     Ok(())
 }
 
-pub fn validate_claim_manager<S>(
-    claim: &Account<Claim, impl AccountRead, S>,
-    manager: &Account<Empty, impl AccountRead, Signed>,
+pub fn validate_claim_manager(
+    claim: &AccountUnsigned<Claim, impl AccountRead>,
+    manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
     if claim.as_ref().manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
@@ -120,11 +120,11 @@ pub fn validate_claim_manager<S>(
     Ok(())
 }
 
-pub fn validate_claim<S0, S1, S2, S3>(
-    claim: &Account<Claim, impl AccountRead, S0>,
-    claim_config: &Account<ClaimConfig, impl AccountRead, S1>,
-    claim_auth: &Account<Empty, impl AccountRead, S2>,
-    manager: &Account<Empty, impl AccountRead, S3>,
+pub fn validate_claim(
+    claim: &AccountWritable<Claim>,
+    claim_config: &AccountReadOnly<ClaimConfig>,
+    claim_auth: &AccountWritable<Empty>,
+    manager: &AccountReadOnly<Empty>,
 ) -> Result<(), ProgramError> {
     if *claim_auth.key() != claim.as_ref().claim_authority {
         return Err(ProgramError::IllegalOwner);

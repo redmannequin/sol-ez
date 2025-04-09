@@ -1,12 +1,22 @@
 pub use pda::AccountData;
 use pinocchio::pubkey::Pubkey;
 
-use crate::account_info::{AccountInfo, AccountRead, AccountWrite};
+use crate::account_info::{
+    AccountInfo, AccountRead, AccountWrite, Immutable, Mutable, Signed, Unsigned,
+};
 
 pub use builder::AccountBuilder;
 
 mod builder;
 mod pda;
+
+pub type AccountReadOnly<'info, T> = Account<'info, T, Immutable, Unsigned>;
+pub type AccountWritable<'info, T> = Account<'info, T, Mutable, Unsigned>;
+pub type AccountReadOnlySigned<'info, T> = Account<'info, T, Immutable, Signed>;
+pub type AccountWritableSigned<'info, T> = Account<'info, T, Mutable, Signed>;
+
+pub type AccountSigned<'info, T, P> = Account<'info, T, P, Signed>;
+pub type AccountUnsigned<'info, T, P> = Account<'info, T, P, Unsigned>;
 
 pub trait DataSize {
     const SIZE: usize;
