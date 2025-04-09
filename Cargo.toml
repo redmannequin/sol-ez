@@ -7,7 +7,7 @@ members = [
     "src/sol-gen",
     "src/sol-gen-common",
 ]
-resolver = "3"
+resolver = "2"
 
 [workspace.dependencies]
 # local

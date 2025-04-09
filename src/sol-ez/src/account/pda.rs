@@ -67,7 +67,7 @@ impl<'info, T, P, S> Account<'info, T, P, S>
 where
     T: AccountData,
 {
-    pub fn new(account_info: AccountInfo<'info, P, S>) -> Result<Self, ProgramError>
+    pub(crate) fn new(account_info: AccountInfo<'info, P, S>) -> Result<Self, ProgramError>
     where
         T: BorshDeserialize,
         P: AccountRead,

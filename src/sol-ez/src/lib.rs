@@ -1,7 +1,7 @@
 //! A Solana Rust Framework
 
 #![no_std]
-use pinocchio::{ProgramResult, account_info::AccountInfo, pubkey::Pubkey};
+use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};
 
 pub use account::{AccountData, DataSize};
 pub use instruction_data::InstructionData;
@@ -19,7 +19,7 @@ pub trait Contract {
 }
 
 pub trait Seed<const D: usize, const N: usize> {
-    const SEEDS: &[&[u8]; D];
+    const SEEDS: &'static [&'static [u8]; D];
     type Accounts;
     fn seeds(keys: &Self::Accounts) -> [&[u8]; N];
 }

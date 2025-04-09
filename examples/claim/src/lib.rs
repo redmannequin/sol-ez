@@ -6,16 +6,22 @@ use claim_contract::{
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 use pinocchio_log::log;
 use sol_ez::{
-    Contract,
     account::{AccountReadOnly, AccountSigned, AccountUnsigned, AccountWritable},
     account_info::{AccountRead, Empty},
+    Contract,
 };
 
 mod claim_contract;
 
+#[cfg(feature = "bpf")]
+pub mod entrypoint {
+    use crate::FN;
+    use pinocchio::entrypoint;
+    entrypoint!(FN);
+}
+
 type EFN =
     for<'a, 'b, 'info> fn(&'a Pubkey, &'info [AccountInfo], &'b [u8]) -> Result<(), ProgramError>;
-
 pub const FN: EFN = ClaimDispatcher::<MyClaim>::dispatch;
 
 pub struct MyClaim;
