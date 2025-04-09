@@ -1,0 +1,149 @@
+################################################################################
+# Claim Program
+#
+# An example program for a managed token claim system
+#
+# TODO: add token pool account + instructions 
+################################################################################
+[program]
+name = "claim"
+version = [0, 1, 0]
+
+################################################################################
+# Claim
+#
+# A claim(manager, token, user)
+#  - claim_authority:   the id of the token account to claim
+#  - manager_authority: the id of the claim manager 
+#  - amount_aquired:    the amount claimable
+################################################################################
+
+[accounts.claim]
+id = 0
+seed = { kind = "hash", size = 4, bump = true, func = "[user, token, manager] => 'claim' + manager + token + user" }
+
+[accounts.claim.payload]
+type = "struct"
+
+[accounts.claim.payload.data]
+claim_authority = "public_key"
+manager_authority = "public_key"
+amount_acquired = "u64"
+
+################################################################################
+# Claim Config
+#
+# A Claim Config(manager, token)
+#  - token_id:            the id of the token to claim
+#  - manager_authority:   the id of the account that can make changes to the 
+#                         config and associated claim accounts
+#  - min_amount_to_claim: the minimum amount of claim amount required to claim 
+################################################################################
+
+[accounts.claim_config]
+id = 1
+seed = { kind = "hash", size = 4, bump = true, func = "[manager, token] => 'claim_config' + manager + token" }
+
+[accounts.claim_config.payload]
+type = "struct"
+
+[accounts.claim_config.payload.data]
+token_id = "public_key"
+manager_authority = "public_key"
+min_amount_to_claim = "u64"
+
+################################################################################
+# Instruction Config
+################################################################################
+
+[ix_config]
+discriminator_size = 4
+discriminator_type = "hash"
+
+################################################################################
+# Create Claim Instruction
+#
+# args:
+#  - claim_authority: the token account allowed to claim
+#  - amount: set the inital amount_aquired for claim
+#
+# accounts:
+#  - manager_authority: the claim manager
+#  - claim_config:      the config for the associated (manager, token) pair
+#  - claim:             the account to be created
+################################################################################
+
+[ix.create_claim]
+id = 0
+args = { claim_authority = "public_key", amount = "u64" }
+
+[ix.create_claim.accounts]
+manager_authority = { id = 0, mutable = true, signed = true }
+claim_config = { id = 1, type = "claim_config" }
+claim = { id = 2, type = "claim", create = true }
+
+################################################################################
+# Update Claim Instruction
+#
+# args:
+#  - amount_to_add: the amount to increate the claim_aquired by
+#
+# accounts:
+#  - manager_authority: the claim manager
+#  - claim_config:      the config for the associated (manager, token) pair
+#  - claim:             the account to be updated 
+################################################################################
+
+[ix.update_claim]
+id = 1
+args = { amount_to_add = "u64" }
+
+[ix.update_claim.accounts]
+manager_authority = { id = 0, signed = true }
+claim_config = { id = 1, type = "claim_config" }
+claim = { id = 2, type = "claim", mutable = true }
+
+################################################################################
+# Claim Instruction
+#
+# accounts:
+#  - claim_authority:   the token account of the user
+#  - claim_config:      the config of the manager, token pair
+#  - claim:             the claim account
+#  - manager_authority: the manager account of the claim
+#  - user_authoruty:    the users token account wallet account
+################################################################################
+
+[ix.claim]
+id = 2
+
+[ix.claim.accounts]
+claim_authority = { id = 0, mutable = true }
+claim_config = { id = 1, type = "claim_config" }
+claim = { id = 2, type = "claim", mutable = true }
+manager_authority = { id = 3 }
+user_authority = { id = 4, signed = true }
+
+################################################################################
+# Create Config Instruction
+################################################################################
+
+[ix.create_config]
+id = 3
+args = { token_id = "public_key" }
+
+[ix.create_config.accounts]
+manager_authority = { id = 0, mutable = true, signed = true }
+claim_config = { id = 1, type = "claim_config", create = true }
+
+################################################################################
+# Update Config Instruction
+################################################################################
+
+[ix.update_config]
+id = 4
+args = { min_amount_to_claim = "u64" }
+
+[ix.update_config.accounts]
+manager_authority = { id = 0, signed = true }
+claim_config = { id = 1, type = "claim_config", mutable = true }

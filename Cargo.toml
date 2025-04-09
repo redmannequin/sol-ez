@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "examples/claim",
     "examples/counter",
     "src/sol-derive",
     "src/sol-ez",

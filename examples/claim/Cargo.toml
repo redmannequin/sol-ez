@@ -1,0 +1,19 @@
+[package]
+name = "claim"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+# local
+sol-ez = { workspace = true }
+
+# external
+borsh = { workspace = true, features = ["derive"] }
+pinocchio = { workspace = true }
+pinocchio-log = "0.4"
+
+[build-dependencies]
+sol-gen = { workspace = true }
