@@ -11,7 +11,7 @@ use sol_ez::{
     Contract,
 };
 
-mod claim_contract;
+pub mod claim_contract;
 
 #[cfg(feature = "bpf")]
 pub mod entrypoint {
@@ -22,7 +22,8 @@ pub mod entrypoint {
 
 type EFN =
     for<'a, 'b, 'info> fn(&'a Pubkey, &'info [AccountInfo], &'b [u8]) -> Result<(), ProgramError>;
-pub const FN: EFN = ClaimDispatcher::<MyClaim>::dispatch;
+pub const FN: EFN =
+    |program_id, accounts, data| ClaimDispatcher::<MyClaim>::dispatch(program_id, accounts, data);
 
 pub struct MyClaim;
 
@@ -80,6 +81,7 @@ impl ClaimContract for MyClaim {
         mut accounts: CreateConfigAccounts,
         token_id: Pubkey,
     ) -> Result<(), ProgramError> {
+        log!("In Config Created");
         accounts.claim_config.init(
             ClaimConfig {
                 manager_authority: *accounts.manager_authority.key(),

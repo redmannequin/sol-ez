@@ -20,3 +20,7 @@ sol-gen = { workspace = true }
 
 [features]
 bpf = []
+
+[dev-dependencies]
+pinocchio = { workspace = true, features = ["test", "std"] }
+pinocchio-system = { workspace = true }

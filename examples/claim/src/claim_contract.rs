@@ -187,6 +187,11 @@ pub trait ClaimContract {
 pub struct ClaimDispatcher<T> {
     inner: PhantomData<T>,
 }
+pub const CREATE_CLAIM: [u8; 4usize] = [109u8, 226u8, 7u8, 61u8];
+pub const UPDATE_CLAIM: [u8; 4usize] = [3u8, 255u8, 115u8, 253u8];
+pub const CLAIM: [u8; 4usize] = [29u8, 37u8, 118u8, 180u8];
+pub const CREATE_CONFIG: [u8; 4usize] = [78u8, 77u8, 163u8, 125u8];
+pub const UPDATE_CONFIG: [u8; 4usize] = [88u8, 6u8, 10u8, 242u8];
 impl<T> sol_ez::Contract for ClaimDispatcher<T>
 where
     T: ClaimContract,
@@ -198,26 +203,26 @@ where
     ) -> Result<(), ProgramError> {
         let ix_data = sol_ez::InstructionData::new(payload)?;
         match ix_data.ix {
-            [109u8, 226u8, 7u8, 61u8] => {
+            CREATE_CLAIM => {
                 let accounts = CreateClaimAccounts::load(accounts)?;
                 let (amount, claim_authority) = ix_data.deserialize_data()?;
                 T::create_claim(program_id, accounts, amount, claim_authority)
             }
-            [3u8, 255u8, 115u8, 253u8] => {
+            UPDATE_CLAIM => {
                 let accounts = UpdateClaimAccounts::load(accounts)?;
                 let amount_to_add = ix_data.deserialize_data()?;
                 T::update_claim(program_id, accounts, amount_to_add)
             }
-            [29u8, 37u8, 118u8, 180u8] => {
+            CLAIM => {
                 let accounts = ClaimAccounts::load(accounts)?;
                 T::claim(program_id, accounts)
             }
-            [78u8, 77u8, 163u8, 125u8] => {
+            CREATE_CONFIG => {
                 let accounts = CreateConfigAccounts::load(accounts)?;
                 let token_id = ix_data.deserialize_data()?;
                 T::create_config(program_id, accounts, token_id)
             }
-            [88u8, 6u8, 10u8, 242u8] => {
+            UPDATE_CONFIG => {
                 let accounts = UpdateConfigAccounts::load(accounts)?;
                 let min_amount_to_claim = ix_data.deserialize_data()?;
                 T::update_config(program_id, accounts, min_amount_to_claim)

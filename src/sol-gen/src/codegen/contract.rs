@@ -36,15 +36,22 @@ where
     let dispatcher_name = str_to_struct_name(&idl.name, Some("Dispatcher"));
     let contract_trait_name = str_to_struct_name(&idl.name, Some("Contract"));
 
+    let ix_discriminators = idl.instructions.iter().map(|ix| {
+        let discriminator = {
+            let bytes = D::from_instruction(&idl.name, ix, idl.instruction_discriminator_size);
+            quote! { [#( #bytes ),*] }
+        };
+        let discriminator_size = idl.instruction_discriminator_size;
+        let ix_name = str_to_const_name(&ix.name);
+
+        quote! { pub const #ix_name: [u8; #discriminator_size] = #discriminator; }
+    });
+
     let ix_match_branch = idl
         .instructions
         .iter()
         .map(|ix| {
-            let discriminator = {
-                let bytes = D::from_instruction(&idl.name, ix, idl.instruction_discriminator_size);
-                quote! { [#( #bytes ),*] }
-            };
-
+            let discriminator_name = str_to_const_name(&ix.name);
             let call = {
                 let ix_name = str_to_field_name(&ix.name);
                 let accounts_name = str_to_struct_name(&ix.name, Some("Accounts"));
@@ -79,7 +86,7 @@ where
             };
 
             Ok(quote! {
-                #discriminator => #call
+                #discriminator_name => #call
             })
         })
         .collect::<Result<Vec<_>, SolGenError>>()?;
@@ -88,6 +95,8 @@ where
         pub struct #dispatcher_name<T> {
             inner: PhantomData<T>
         }
+
+        #( #ix_discriminators )*
 
         impl<T> sol_ez::Contract for #dispatcher_name<T>
         where
@@ -252,6 +261,10 @@ where
             #( #account_fields, )*
         }
     }
+}
+
+fn str_to_const_name(s: &str) -> syn::Ident {
+    quote::format_ident!("{}", s.to_case(Case::Constant))
 }
 
 fn str_to_field_name(s: &str) -> syn::Ident {

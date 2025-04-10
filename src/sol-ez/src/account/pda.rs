@@ -3,8 +3,8 @@ use core::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
 use pinocchio::{
     program_error::ProgramError,
-    pubkey::{self, Pubkey},
-    sysvars::{Sysvar, rent::Rent},
+    pubkey::Pubkey,
+    sysvars::{rent::Rent, Sysvar},
 };
 use pinocchio_system::instructions::CreateAccount;
 
@@ -150,16 +150,16 @@ where
             }
 
             // TODO: set seed
-            let seed = b"todo";
-            let bump_seepd = &[255];
-            let pda = pubkey::create_program_address(&[seed, bump_seepd], owner)?;
+            // let seed = b"todo";
+            // let bump_seepd = &[255];
+            // let pda = pubkey::create_program_address(&[seed, bump_seepd], owner)?;
 
-            if *account_info.key() != pda {
-                return Err(ProgramError::InvalidAccountData);
-            }
+            // if *account_info.key() != pda {
+            //     return Err(ProgramError::InvalidAccountData);
+            // }
 
-            let rent = Rent::get()?;
-            let required_lamports = rent.minimum_balance(T::SIZE);
+            // let rent = Rent::get()?;
+            let required_lamports = 0; // rent.minimum_balance(T::SIZE);
 
             payer.account_info.while_released(|payer| {
                 CreateAccount {
@@ -169,7 +169,8 @@ where
                     space: T::SIZE as u64,
                     owner,
                 }
-                .invoke()
+                .invoke()?;
+                Ok(())
             })
         })?;
 

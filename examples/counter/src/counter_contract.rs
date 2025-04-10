@@ -94,6 +94,9 @@ pub trait CounterContract {
 pub struct CounterDispatcher<T> {
     inner: PhantomData<T>,
 }
+pub const INITALIZE: [u8; 4usize] = [165u8, 109u8, 64u8, 236u8];
+pub const INCREMENT: [u8; 4usize] = [139u8, 113u8, 235u8, 106u8];
+pub const CLOSE: [u8; 4usize] = [9u8, 199u8, 35u8, 185u8];
 impl<T> sol_ez::Contract for CounterDispatcher<T>
 where
     T: CounterContract,
@@ -105,16 +108,16 @@ where
     ) -> Result<(), ProgramError> {
         let ix_data = sol_ez::InstructionData::new(payload)?;
         match ix_data.ix {
-            [165u8, 109u8, 64u8, 236u8] => {
+            INITALIZE => {
                 let accounts = InitalizeAccounts::load(accounts)?;
                 let amount = ix_data.deserialize_data()?;
                 T::initalize(program_id, accounts, amount)
             }
-            [139u8, 113u8, 235u8, 106u8] => {
+            INCREMENT => {
                 let accounts = IncrementAccounts::load(accounts)?;
                 T::increment(program_id, accounts)
             }
-            [9u8, 199u8, 35u8, 185u8] => {
+            CLOSE => {
                 let accounts = CloseAccounts::load(accounts)?;
                 T::close(program_id, accounts)
             }

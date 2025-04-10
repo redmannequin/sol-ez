@@ -62,7 +62,7 @@ impl<'info, M, S> AccountBuilder<'info, Empty, M, S> {
 
 impl<'info, T, S> AccountBuilder<'info, T, Immutable, S> {
     pub fn mutable(self) -> Result<AccountBuilder<'info, T, Mutable, S>, ProgramError> {
-        if self.account_info.is_writable() {
+        if !self.account_info.is_writable() {
             return Err(ProgramError::Immutable);
         }
         Ok(AccountBuilder {
