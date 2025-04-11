@@ -384,7 +384,7 @@ dependencies = [
 [[package]]
 name = "pinocchio"
 version = "0.8.1"
-source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#e4ae7daf9f7d8af97e02a564b9195e8c728d3a7a"
+source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#cd0c74d7dab2ec480b0ec1c1ee370b83a7e34636"
 dependencies = [
  "solana-pubkey",
 ]
@@ -400,9 +400,9 @@ dependencies = [
 
 [[package]]
 name = "pinocchio-log-macro"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d3ca23b4b0721ac5e013ad73f592f2030c0c601c5d11773fe4709f03d4a329d"
+checksum = "6edac6ac2c9c456b850d3e908b7f224a54623f6c5b75906b9e48a4e248fb332b"
 dependencies = [
  "quote",
  "regex",
