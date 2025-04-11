@@ -1,13 +1,10 @@
 use borsh::BorshDeserialize;
-use claim::{
-    claim_contract::{ClaimConfig, ClaimDispatcher, CREATE_CONFIG},
-    MyClaim,
-};
+use claim::{ClaimConfig, CREATE_CONFIG};
 use pinocchio::{
     instruction::{AccountMeta, Instruction},
     runtime::mock::{invoke, MockAccount, MockProgramAccount, MOCK_RUNTIME},
 };
-use sol_ez::{AccountData, Contract};
+use sol_ez::AccountData;
 
 #[test]
 fn create_config() {
@@ -27,7 +24,7 @@ fn create_config() {
                 program_id,
                 pinocchio_system::ID,
                 0,
-                ClaimDispatcher::<MyClaim>::dispatch,
+                claim::FN,
             ),
         );
 

@@ -383,8 +383,8 @@ dependencies = [
 
 [[package]]
 name = "pinocchio"
-version = "0.8.1"
-source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#cd0c74d7dab2ec480b0ec1c1ee370b83a7e34636"
+version = "0.8.2"
+source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#0db0ce43ae48feb6fe061e30ff58f00ef311b8ec"
 dependencies = [
  "solana-pubkey",
 ]
