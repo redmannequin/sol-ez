@@ -28,7 +28,9 @@ impl ClaimContract for MyClaim {
                 amount_acquired: amount,
                 claim_authority,
                 manager_authority: *accounts.manager_authority.key(),
+                bump: 0,
             },
+            0,
             &mut accounts.manager_authority,
             program_id,
         )?;
@@ -67,6 +69,7 @@ impl ClaimContract for MyClaim {
     fn create_config(
         program_id: &Pubkey,
         mut accounts: CreateConfigAccounts,
+        config_bump: u8,
         token_id: Pubkey,
     ) -> Result<(), ProgramError> {
         log!("In Config Created");
@@ -75,7 +78,9 @@ impl ClaimContract for MyClaim {
                 manager_authority: *accounts.manager_authority.key(),
                 min_amount_to_claim: 0,
                 token_id,
+                bump: config_bump,
             },
+            config_bump,
             &mut accounts.manager_authority,
             program_id,
         )?;

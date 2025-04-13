@@ -7,6 +7,7 @@ use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
 pub struct Count {
     pub authority: [u8; 32],
     pub value: u8,
+    pub bump: u8,
 }
 pub struct InitalizeAccounts<'info> {
     pub user: AccountWritableSigned<'info, Empty>,

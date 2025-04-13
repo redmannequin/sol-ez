@@ -130,7 +130,7 @@ user_authority = { id = 4, signed = true }
 
 [ix.create_config]
 id = 3
-args = { token_id = "public_key" }
+args = { token_id = "public_key", config_bump = "u8" }
 
 [ix.create_config.accounts]
 manager_authority = { id = 0, mutable = true, signed = true }

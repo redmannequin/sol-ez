@@ -19,8 +19,9 @@ impl CounterContract for MyCounter {
         let account = Count {
             authority: *accounts.user.key(),
             value: amount,
+            bump: 0,
         };
-        let counter = accounts.count.init(account, &mut accounts.user, owner)?;
+        let counter = accounts.count.init(account, 0, &mut accounts.user, owner)?;
         log!("Counter initialized with value: {}", counter.as_ref().value);
         Ok(())
     }

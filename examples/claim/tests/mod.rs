@@ -1,17 +1,45 @@
 use borsh::BorshDeserialize;
-use claim::{ClaimConfig, CREATE_CONFIG};
+use claim::{ClaimConfig, ClaimDispatcher, MyClaim, CREATE_CONFIG};
 use pinocchio::{
+    account_info::AccountInfo,
     instruction::{AccountMeta, Instruction},
+    program_error::ProgramError,
+    pubkey::{self, Pubkey},
     runtime::mock::{invoke, MockAccount, MockProgramAccount, MOCK_RUNTIME},
+    ProgramResult,
 };
-use sol_ez::AccountData;
+use sol_ez::{AccountData, Contract, InstructionData};
+
+fn system_program(
+    _program_id: &Pubkey,
+    account_infos: &[AccountInfo],
+    data: &[u8],
+) -> ProgramResult {
+    let ix_data = InstructionData::new(data)?;
+    match ix_data.ix {
+        // create account
+        [0, 0, 0, 0] => {
+            let (lamports, space, owner) = ix_data.deserialize_data()?;
+            let lamports = u64::from_le_bytes(lamports);
+            let space = u64::from_le_bytes(space);
+            unsafe {
+                *account_infos[1].borrow_mut_lamports_unchecked() = lamports;
+                account_infos[1].realloc(space as usize, false)?;
+                account_infos[1].assign(&owner);
+            }
+            Ok(())
+        }
+        _ => Err(ProgramError::InvalidInstructionData),
+    }
+}
 
 #[test]
 fn create_config() {
     let program_id = [250; 32];
-    let token_id = [254; 32];
-    let config_id = [253; 32];
-    let manager_id = [252; 32];
+    let token_id = [150; 32];
+    let manager_id = [50; 32];
+
+    let (config_id, config_id_bump) = pubkey::find_program_address(&[b"todo"], &program_id);
 
     let (manager, claim_config) = {
         let mut rt = MOCK_RUNTIME.lock().unwrap();
@@ -24,7 +52,7 @@ fn create_config() {
                 program_id,
                 pinocchio_system::ID,
                 0,
-                claim::FN,
+                ClaimDispatcher::<MyClaim>::dispatch,
             ),
         );
 
@@ -36,14 +64,7 @@ fn create_config() {
                 pinocchio_system::ID,
                 pinocchio_system::ID,
                 0,
-                |_, accounts, data| {
-                    let space = u64::from_le_bytes([
-                        data[12], data[13], data[14], data[15], data[16], data[17], data[18],
-                        data[19],
-                    ]);
-                    accounts[1].realloc(space as usize, false)?;
-                    Ok(())
-                },
+                system_program,
             ),
         );
 
@@ -63,19 +84,12 @@ fn create_config() {
     };
 
     let mut data = CREATE_CONFIG.to_vec();
+    data.push(config_id_bump);
     data.extend(token_id);
 
     let accounts = [
-        AccountMeta {
-            pubkey: &manager_id,
-            is_writable: true,
-            is_signer: true,
-        },
-        AccountMeta {
-            pubkey: &config_id,
-            is_writable: true,
-            is_signer: false,
-        },
+        AccountMeta::writable_signer(&manager_id),
+        AccountMeta::writable(&config_id),
     ];
 
     invoke(
@@ -98,4 +112,5 @@ fn create_config() {
     assert_eq!(config.manager_authority, manager_id);
     assert_eq!(config.min_amount_to_claim, 0);
     assert_eq!(config.token_id, token_id);
+    assert_eq!(config.bump, config_id_bump);
 }

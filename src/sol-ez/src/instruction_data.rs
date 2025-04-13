@@ -15,7 +15,7 @@ impl<'data, const N: usize> InstructionData<'data, N> {
             return Err(ProgramError::InvalidInstructionData);
         }
 
-        let (ix, data) = data.split_at(4);
+        let (ix, data) = data.split_at(N);
         let ix = {
             let mut data = [0; N];
             data.copy_from_slice(ix);

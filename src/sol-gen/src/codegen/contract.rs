@@ -244,11 +244,21 @@ where
     D::Seed: quote::ToTokens,
 {
     let account_name = str_to_struct_name(&account.name, None);
-    let account_fields = account.fields.iter().map(|field| {
-        let field_name = str_to_field_name(&field.name);
-        let ty = gen_type(&field.ty);
-        quote! { pub #field_name: #ty }
-    });
+    let account_fields = account
+        .fields
+        .iter()
+        .map(|field| {
+            let field_name = str_to_field_name(&field.name);
+            let ty = gen_type(&field.ty);
+            quote! { pub #field_name: #ty }
+        })
+        .chain(
+            account
+                .seed
+                .as_ref()
+                .filter(|seed| seed.bump)
+                .map(|_| quote! { pub bump: u8}),
+        );
     let discriminator_seed = D::account_seed(program_name, account);
     let discriminator_size = account.discriminator.as_ref().map(|d| d.size).unwrap_or(4) as usize;
 

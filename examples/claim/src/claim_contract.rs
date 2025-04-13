@@ -8,6 +8,7 @@ pub struct Claim {
     pub amount_acquired: u64,
     pub claim_authority: [u8; 32],
     pub manager_authority: [u8; 32],
+    pub bump: u8,
 }
 #[derive(BorshSerialize, BorshDeserialize, AccountData)]
 #[account_data(hash(seed = "claim|account|claim_config", size = 4usize))]
@@ -15,6 +16,7 @@ pub struct ClaimConfig {
     pub manager_authority: [u8; 32],
     pub min_amount_to_claim: u64,
     pub token_id: [u8; 32],
+    pub bump: u8,
 }
 pub struct CreateClaimAccounts<'info> {
     pub manager_authority: AccountWritableSigned<'info, Empty>,
@@ -176,6 +178,7 @@ pub trait ClaimContract {
     fn create_config(
         program_id: &Pubkey,
         accounts: CreateConfigAccounts,
+        config_bump: u8,
         token_id: [u8; 32],
     ) -> Result<(), ProgramError>;
     fn update_config(
@@ -219,8 +222,8 @@ where
             }
             CREATE_CONFIG => {
                 let accounts = CreateConfigAccounts::load(accounts)?;
-                let token_id = ix_data.deserialize_data()?;
-                T::create_config(program_id, accounts, token_id)
+                let (config_bump, token_id) = ix_data.deserialize_data()?;
+                T::create_config(program_id, accounts, config_bump, token_id)
             }
             UPDATE_CONFIG => {
                 let accounts = UpdateConfigAccounts::load(accounts)?;

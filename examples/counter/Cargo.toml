@@ -15,7 +15,6 @@ borsh = { workspace = true, features = ["derive"] }
 pinocchio = { workspace = true }
 pinocchio-log = "0.4"
 
-
 [features]
 bpf = []
 
