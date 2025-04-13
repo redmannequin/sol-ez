@@ -412,7 +412,8 @@ dependencies = [
 [[package]]
 name = "pinocchio-pubkey"
 version = "0.2.4"
-source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#15ebf0863a35cfd2f3fb808c2c80659e5b89315e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c6b20fcebc172c3cd3f54114b0241b48fa8e30893ced2eb4927aaba5e3a0ba5"
 dependencies = [
  "five8_const",
  "pinocchio",
@@ -421,7 +422,8 @@ dependencies = [
 [[package]]
 name = "pinocchio-system"
 version = "0.2.3"
-source = "git+https://github.com/redmannequin/pinocchio.git?branch=mock-runtime#15ebf0863a35cfd2f3fb808c2c80659e5b89315e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f75423420ae70aa748cf611cab14cfd00af08d0d2d3d258cb0cf5e2880ec19c"
 dependencies = [
  "pinocchio",
  "pinocchio-pubkey",
