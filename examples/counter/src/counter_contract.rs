@@ -109,16 +109,16 @@ where
     ) -> Result<(), ProgramError> {
         let ix_data = sol_ez::InstructionData::new(payload)?;
         match ix_data.ix {
-            INITALIZE => {
+            &INITALIZE => {
                 let accounts = InitalizeAccounts::load(accounts)?;
                 let amount = ix_data.deserialize_data()?;
                 T::initalize(program_id, accounts, amount)
             }
-            INCREMENT => {
+            &INCREMENT => {
                 let accounts = IncrementAccounts::load(accounts)?;
                 T::increment(program_id, accounts)
             }
-            CLOSE => {
+            &CLOSE => {
                 let accounts = CloseAccounts::load(accounts)?;
                 T::close(program_id, accounts)
             }

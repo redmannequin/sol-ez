@@ -3,11 +3,11 @@ use core::usize;
 use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
-use crate::init_from_slice_unchecked;
+use crate::split_at_fixed_unchecked;
 
 #[derive(Debug)]
 pub struct InstructionData<'data, const N: usize> {
-    pub ix: [u8; N],
+    pub ix: &'data [u8; N],
     pub data: &'data [u8],
 }
 
@@ -17,10 +17,7 @@ impl<'data, const N: usize> InstructionData<'data, N> {
             return Err(ProgramError::InvalidInstructionData);
         }
         // SAFETY: the size of data is already checked
-        let (ix, data) = unsafe {
-            let (ix, data) = data.split_at_unchecked(N);
-            (init_from_slice_unchecked(ix), data)
-        };
+        let (ix, data) = unsafe { split_at_fixed_unchecked(data) };
         Ok(InstructionData { ix, data })
     }
 

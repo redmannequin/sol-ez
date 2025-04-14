@@ -206,26 +206,26 @@ where
     ) -> Result<(), ProgramError> {
         let ix_data = sol_ez::InstructionData::new(payload)?;
         match ix_data.ix {
-            CREATE_CLAIM => {
+            &CREATE_CLAIM => {
                 let accounts = CreateClaimAccounts::load(accounts)?;
                 let (amount, claim_authority) = ix_data.deserialize_data()?;
                 T::create_claim(program_id, accounts, amount, claim_authority)
             }
-            UPDATE_CLAIM => {
+            &UPDATE_CLAIM => {
                 let accounts = UpdateClaimAccounts::load(accounts)?;
                 let amount_to_add = ix_data.deserialize_data()?;
                 T::update_claim(program_id, accounts, amount_to_add)
             }
-            CLAIM => {
+            &CLAIM => {
                 let accounts = ClaimAccounts::load(accounts)?;
                 T::claim(program_id, accounts)
             }
-            CREATE_CONFIG => {
+            &CREATE_CONFIG => {
                 let accounts = CreateConfigAccounts::load(accounts)?;
                 let (config_bump, token_id) = ix_data.deserialize_data()?;
                 T::create_config(program_id, accounts, config_bump, token_id)
             }
-            UPDATE_CONFIG => {
+            &UPDATE_CONFIG => {
                 let accounts = UpdateConfigAccounts::load(accounts)?;
                 let min_amount_to_claim = ix_data.deserialize_data()?;
                 T::update_config(program_id, accounts, min_amount_to_claim)

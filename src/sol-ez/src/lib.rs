@@ -31,8 +31,8 @@ pub use sol_derive::AccountData;
 /// Initializes a `[T; N]` array from a byte slice without bounds checks.
 ///
 /// # Safety
-/// - `src.len()` **must** be exactly `N`.
-/// - If `src.len() != N`, this results in undefined behavior.
+/// - `src.len()` **must** be at least `N`.
+/// - If `src.len() < N`, this results in undefined behavior.
 ///
 /// This function performs a raw, unchecked memory copy from the slice into a new `[T; N]` array.
 /// It will assume that the caller has ensured the size and validity of the src.
@@ -41,12 +41,25 @@ pub use sol_derive::AccountData;
 ///
 /// In debug builds, this will panic if `src.len() != N`.
 /// ```
-unsafe fn init_from_slice_unchecked<const N: usize, T>(src: &[T]) -> [T; N]
+pub unsafe fn init_from_slice_unchecked<const N: usize, T>(src: &[T]) -> [T; N]
 where
     T: Copy,
 {
-    debug_assert!(src.len() == N);
+    debug_assert!(src.len() >= N, "Slice length must be atleast N");
     let mut buf = MaybeUninit::<[T; N]>::uninit();
     ptr::copy_nonoverlapping(src.as_ptr(), buf.as_mut_ptr() as *mut T, N);
     buf.assume_init()
+}
+
+pub unsafe fn split_at_fixed_unchecked<'a, const N: usize, T>(
+    src: &'a [T],
+) -> (&'a [T; N], &'a [T]) {
+    debug_assert!(src.len() >= N, "Slice length must be atleast N");
+    let (a, b) = src.split_at_unchecked(N);
+    (slice_to_array_unchecked(a), b)
+}
+
+pub unsafe fn slice_to_array_unchecked<'a, T, const N: usize>(slice: &'a [T]) -> &'a [T; N] {
+    debug_assert_eq!(slice.len(), N, "Slice length must be exactly N");
+    &*(slice.as_ptr() as *const [T; N])
 }

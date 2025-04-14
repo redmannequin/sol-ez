@@ -86,7 +86,7 @@ where
             };
 
             Ok(quote! {
-                #discriminator_name => #call
+                &#discriminator_name => #call
             })
         })
         .collect::<Result<Vec<_>, SolGenError>>()?;
