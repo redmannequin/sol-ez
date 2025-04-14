@@ -3,6 +3,8 @@ use core::usize;
 use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
+use crate::ArrayExt;
+
 #[derive(Debug)]
 pub struct InstructionData<'data, const N: usize> {
     pub ix: [u8; N],
@@ -15,11 +17,9 @@ impl<'data, const N: usize> InstructionData<'data, N> {
             return Err(ProgramError::InvalidInstructionData);
         }
         // SAFETY: the size of data is already checked
-        let (ix, data) = unsafe { data.split_at_unchecked(N) };
-        let ix = {
-            let mut data = [0; N];
-            data.copy_from_slice(ix);
-            data
+        let (ix, data) = unsafe {
+            let (ix, data) = data.split_at_unchecked(N);
+            (ArrayExt::init_from_slice_unchecked(ix), data)
         };
         Ok(InstructionData { ix, data })
     }
