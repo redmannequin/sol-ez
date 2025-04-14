@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{marker::PhantomData, ptr};
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use pinocchio::{
@@ -17,6 +17,9 @@ use super::Account;
 pub trait Discriminator {
     const SIZE: usize;
     fn as_bytes(&self) -> &[u8];
+    fn as_ptr(&self) -> *const u8 {
+        self.as_bytes().as_ptr()
+    }
 }
 
 impl<const N: usize> Discriminator for [u8; N] {
@@ -69,10 +72,17 @@ pub trait AccountData {
         }
 
         // SAFETY: the account data size is already checked
-        let (discriminator, mut data) =
-            unsafe { account_data.split_at_mut_unchecked(Self::DiscriminatorKind::SIZE) };
+        let mut data = unsafe {
+            let (discriminator, data) =
+                account_data.split_at_mut_unchecked(Self::DiscriminatorKind::SIZE);
+            ptr::copy_nonoverlapping(
+                Self::DISCRIMINATOR.as_ptr(),
+                discriminator.as_mut_ptr(),
+                Self::DiscriminatorKind::SIZE,
+            );
+            data
+        };
 
-        discriminator.copy_from_slice(Self::DISCRIMINATOR.as_bytes());
         BorshSerialize::serialize(&self, &mut data).map_err(|_err| ProgramError::BorshIoError)?;
         Ok(())
     }
