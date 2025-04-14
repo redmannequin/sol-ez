@@ -28,6 +28,24 @@ impl<const DISCRIMINATOR_SIZE: usize, T> AccountData<DISCRIMINATOR_SIZE, T>
 where
     T: AccountDataConfig<DISCRIMINATOR_SIZE>,
 {
+    pub fn new(inner: T) -> Self {
+        Self { inner }
+    }
+
+    #[cfg(feature = "std")]
+    pub fn to_bytes(self) -> Result<std::vec::Vec<u8>, ProgramError>
+    where
+        T: BorshSerialize,
+    {
+        use std::vec;
+        let mut bytes = vec![0; DISCRIMINATOR_SIZE + T::DATA_SIZE];
+        let (discriminator, mut data) = bytes.split_at_mut(DISCRIMINATOR_SIZE);
+        discriminator.copy_from_slice(&T::DISCRIMINATOR);
+        BorshSerialize::serialize(&self.inner, &mut data)
+            .map_err(|_err| ProgramError::BorshIoError)?;
+        Ok(bytes)
+    }
+
     fn deserialize<'info, M, S>(
         account_info: &AccountInfo<'info, M, S>,
     ) -> Result<Self, ProgramError>
@@ -36,7 +54,7 @@ where
         M: AccountRead,
     {
         let bytes = account_info.data();
-        if bytes.len() < T::DATA_SIZE + DISCRIMINATOR_SIZE {
+        if bytes.len() != T::DATA_SIZE + DISCRIMINATOR_SIZE {
             return Err(ProgramError::AccountDataTooSmall);
         }
         // SAFETY: the account data size is already checked
@@ -170,7 +188,7 @@ where
             let pda = pubkey::create_program_address(&[seed, &[bump]], owner)?;
 
             if *account_info.key() != pda {
-                return Err(ProgramError::InvalidAccountData);
+                return Err(ProgramError::IllegalOwner);
             }
 
             let rent = Rent::get()?;

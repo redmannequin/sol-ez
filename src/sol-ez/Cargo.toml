@@ -11,3 +11,7 @@ sol-derive = { workspace = true }
 borsh = { workspace = true }
 pinocchio = { workspace = true }
 pinocchio-system = { workspace = true }
+
+[features]
+default = []
+std = []

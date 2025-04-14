@@ -40,7 +40,7 @@ fn derive_account_data_2(
 
     let tt = quote! {
         impl AccountDataConfig<#discriminator_size> for #name {
-            const DATA_SIZE: usize = #discriminator_size #(+ #field_sizes)*;
+            const DATA_SIZE: usize = 0 #(+ #field_sizes)*;
             const DISCRIMINATOR: [u8; #discriminator_size] = #discriminator;
         }
     };

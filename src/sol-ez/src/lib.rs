@@ -1,6 +1,10 @@
 //! A Solana Rust Framework
 
 #![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
 use core::{mem::MaybeUninit, ptr};
 
 use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};

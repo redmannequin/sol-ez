@@ -22,6 +22,7 @@ sol-gen = { workspace = true }
 bpf = []
 
 [dev-dependencies]
+sol-ez = { workspace = true, features = ["std"] }
 pinocchio = { workspace = true, features = ["test"] }
 pinocchio-system = { workspace = true }
 # pinocchio-token-program = { git = "https://github.com/solana-program/token.git" }
