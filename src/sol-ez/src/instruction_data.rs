@@ -14,14 +14,13 @@ impl<'data, const N: usize> InstructionData<'data, N> {
         if data.len() < N {
             return Err(ProgramError::InvalidInstructionData);
         }
-
-        let (ix, data) = data.split_at(N);
+        // SAFETY: the size of data is already checked
+        let (ix, data) = unsafe { data.split_at_unchecked(N) };
         let ix = {
             let mut data = [0; N];
             data.copy_from_slice(ix);
             data
         };
-
         Ok(InstructionData { ix, data })
     }
 

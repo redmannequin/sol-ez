@@ -40,10 +40,18 @@ pub trait AccountData {
         M: AccountRead,
     {
         let bytes = account_info.data();
-        let (discriminator, data) = bytes.split_at(Self::DiscriminatorKind::SIZE);
+        if bytes.len() < Self::SIZE {
+            return Err(ProgramError::AccountDataTooSmall);
+        }
+
+        // SAFETY: the account data size is already checked
+        let (discriminator, data) =
+            unsafe { bytes.split_at_unchecked(Self::DiscriminatorKind::SIZE) };
+
         if discriminator != Self::DISCRIMINATOR.as_bytes() {
             return Err(ProgramError::InvalidAccountData);
         }
+
         Ok(Self::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?)
     }
 
@@ -56,7 +64,14 @@ pub trait AccountData {
         M: AccountWrite,
     {
         let account_data = &mut account_info.data_mut()[..];
-        let (discriminator, mut data) = account_data.split_at_mut(Self::DiscriminatorKind::SIZE);
+        if account_data.len() < Self::SIZE {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        // SAFETY: the account data size is already checked
+        let (discriminator, mut data) =
+            unsafe { account_data.split_at_mut_unchecked(Self::DiscriminatorKind::SIZE) };
+
         discriminator.copy_from_slice(Self::DISCRIMINATOR.as_bytes());
         BorshSerialize::serialize(&self, &mut data).map_err(|_err| ProgramError::BorshIoError)?;
         Ok(())
