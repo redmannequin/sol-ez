@@ -3,7 +3,7 @@ use core::usize;
 use borsh::BorshDeserialize;
 use pinocchio::program_error::ProgramError;
 
-use crate::ArrayExt;
+use crate::init_from_slice_unchecked;
 
 #[derive(Debug)]
 pub struct InstructionData<'data, const N: usize> {
@@ -19,7 +19,7 @@ impl<'data, const N: usize> InstructionData<'data, N> {
         // SAFETY: the size of data is already checked
         let (ix, data) = unsafe {
             let (ix, data) = data.split_at_unchecked(N);
-            (ArrayExt::init_from_slice_unchecked(ix), data)
+            (init_from_slice_unchecked(ix), data)
         };
         Ok(InstructionData { ix, data })
     }
