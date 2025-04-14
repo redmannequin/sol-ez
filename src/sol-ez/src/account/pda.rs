@@ -8,54 +8,45 @@ use pinocchio::{
 };
 use pinocchio_system::instructions::CreateAccount;
 
-use crate::account_info::{
-    AccountInfo, AccountRead, AccountWrite, Immutable, Init, Signed, Unsigned,
+use crate::{
+    account_info::{AccountInfo, AccountRead, AccountWrite, Immutable, Init, Signed, Unsigned},
+    split_at_fixed_unchecked,
 };
 
 use super::Account;
 
-pub trait Discriminator {
-    const SIZE: usize;
-    fn as_bytes(&self) -> &[u8];
-    fn as_ptr(&self) -> *const u8 {
-        self.as_bytes().as_ptr()
-    }
+pub trait AccountDataConfig<const DISCRIMINATOR_SIZE: usize> {
+    const DATA_SIZE: usize;
+    const DISCRIMINATOR: [u8; DISCRIMINATOR_SIZE];
 }
 
-impl<const N: usize> Discriminator for [u8; N] {
-    const SIZE: usize = N;
-
-    fn as_bytes(&self) -> &[u8] {
-        self
-    }
+pub struct AccountData<const DISCRIMINATOR_SIZE: usize, T> {
+    inner: T,
 }
 
-pub trait AccountData {
-    const SIZE: usize;
-    const DISCRIMINATOR: Self::DiscriminatorKind;
-    type DiscriminatorKind: Discriminator;
-
+impl<const DISCRIMINATOR_SIZE: usize, T> AccountData<DISCRIMINATOR_SIZE, T>
+where
+    T: AccountDataConfig<DISCRIMINATOR_SIZE>,
+{
     fn deserialize<'info, M, S>(
         account_info: &AccountInfo<'info, M, S>,
     ) -> Result<Self, ProgramError>
     where
-        Self: BorshDeserialize,
+        T: BorshDeserialize,
         M: AccountRead,
     {
         let bytes = account_info.data();
-        if bytes.len() < Self::SIZE {
+        if bytes.len() < T::DATA_SIZE + DISCRIMINATOR_SIZE {
             return Err(ProgramError::AccountDataTooSmall);
         }
-
         // SAFETY: the account data size is already checked
-        let (discriminator, data) =
-            unsafe { bytes.split_at_unchecked(Self::DiscriminatorKind::SIZE) };
-
-        if discriminator != Self::DISCRIMINATOR.as_bytes() {
+        let (discriminator, data) = unsafe { split_at_fixed_unchecked(bytes) };
+        if discriminator != &T::DISCRIMINATOR {
             return Err(ProgramError::InvalidAccountData);
         }
-
-        Ok(Self::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?)
+        Ok(Self {
+            inner: T::try_from_slice(data).map_err(|_err| ProgramError::BorshIoError)?,
+        })
     }
 
     fn serialize<'info, M, S>(
@@ -63,41 +54,40 @@ pub trait AccountData {
         account_info: &mut AccountInfo<'info, M, S>,
     ) -> Result<(), ProgramError>
     where
-        Self: BorshSerialize,
+        T: BorshSerialize,
         M: AccountWrite,
     {
         let account_data = &mut account_info.data_mut()[..];
-        if account_data.len() < Self::SIZE {
+        if account_data.len() < T::DATA_SIZE + DISCRIMINATOR_SIZE {
             return Err(ProgramError::InvalidAccountData);
         }
-
         // SAFETY: the account data size is already checked
         let mut data = unsafe {
-            let (discriminator, data) =
-                account_data.split_at_mut_unchecked(Self::DiscriminatorKind::SIZE);
+            let (discriminator, data) = account_data.split_at_mut_unchecked(DISCRIMINATOR_SIZE);
             ptr::copy_nonoverlapping(
-                Self::DISCRIMINATOR.as_ptr(),
+                T::DISCRIMINATOR.as_ptr(),
                 discriminator.as_mut_ptr(),
-                Self::DiscriminatorKind::SIZE,
+                DISCRIMINATOR_SIZE,
             );
             data
         };
-
-        BorshSerialize::serialize(&self, &mut data).map_err(|_err| ProgramError::BorshIoError)?;
+        BorshSerialize::serialize(&self.inner, &mut data)
+            .map_err(|_err| ProgramError::BorshIoError)?;
         Ok(())
     }
 }
 
-impl<'info, T, P, S> Account<'info, T, P, S>
+impl<'info, const DISCRIMINATOR_SIZE: usize, T, P, S>
+    Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, P, S>
 where
-    T: AccountData,
+    T: AccountDataConfig<DISCRIMINATOR_SIZE>,
 {
     pub(crate) fn new(account_info: AccountInfo<'info, P, S>) -> Result<Self, ProgramError>
     where
         T: BorshDeserialize,
         P: AccountRead,
     {
-        let inner = { <T as AccountData>::deserialize(&account_info)? };
+        let inner = AccountData::deserialize(&account_info)?;
         Ok(Account {
             inner,
             account_info,
@@ -108,17 +98,19 @@ where
     where
         P: AccountRead,
     {
-        &self.inner
+        &self.inner.inner
     }
 
     pub fn as_ref_mut(&mut self) -> &mut T
     where
         P: AccountWrite,
     {
-        &mut self.inner
+        &mut self.inner.inner
     }
 
-    pub fn apply(mut self) -> Result<Account<'info, T, Immutable, S>, ProgramError>
+    pub fn apply(
+        mut self,
+    ) -> Result<Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, Immutable, S>, ProgramError>
     where
         T: BorshSerialize,
         P: AccountWrite,
@@ -145,14 +137,12 @@ where
     }
 }
 
-impl<'info, T> Account<'info, PhantomData<T>, Init, Unsigned>
+impl<'info, const DISCRIMINATOR_SIZE: usize, T>
+    Account<'info, PhantomData<AccountData<DISCRIMINATOR_SIZE, T>>, Init, Unsigned>
 where
-    T: AccountData,
+    T: AccountDataConfig<DISCRIMINATOR_SIZE>,
 {
-    pub fn new_init(account_info: AccountInfo<'info, Init, Unsigned>) -> Self
-    where
-        T: AccountData,
-    {
+    pub fn new_init(account_info: AccountInfo<'info, Init, Unsigned>) -> Self {
         Self {
             inner: PhantomData,
             account_info,
@@ -165,7 +155,7 @@ where
         bump: u8,
         payer: &mut Account<'info, P, PA, PS>,
         owner: &Pubkey,
-    ) -> Result<Account<'info, T, Immutable, Unsigned>, ProgramError>
+    ) -> Result<Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, Immutable, Unsigned>, ProgramError>
     where
         T: BorshSerialize,
         PA: AccountWrite,
@@ -184,14 +174,14 @@ where
             }
 
             let rent = Rent::get()?;
-            let required_lamports = rent.minimum_balance(T::SIZE);
+            let required_lamports = rent.minimum_balance(T::DATA_SIZE + DISCRIMINATOR_SIZE);
 
             payer.account_info.while_released(|payer| {
                 CreateAccount {
                     from: payer,
                     to: account_info,
                     lamports: required_lamports,
-                    space: T::SIZE as u64,
+                    space: (T::DATA_SIZE + DISCRIMINATOR_SIZE) as u64,
                     owner,
                 }
                 .invoke()?;
@@ -199,6 +189,7 @@ where
             })
         })?;
 
+        let account = AccountData { inner: account };
         AccountData::serialize(&account, &mut self.account_info)?;
 
         Ok(Account {

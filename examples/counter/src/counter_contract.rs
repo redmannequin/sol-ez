@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
-use sol_ez::{account::*, account_info::*, AccountData, DataSize};
+use sol_ez::{account::*, account_info::*, AccountData, AccountDataConfig, DataSize};
 use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
-#[derive(BorshSerialize, BorshDeserialize, AccountData)]
+#[derive(BorshSerialize, BorshDeserialize, AccountDataConfig)]
 #[account_data(hash(seed = "counter|account|count", size = 4usize))]
 pub struct Count {
     pub authority: [u8; 32],
@@ -11,7 +11,7 @@ pub struct Count {
 }
 pub struct InitalizeAccounts<'info> {
     pub user: AccountWritableSigned<'info, Empty>,
-    pub count: Account<'info, PhantomData<Count>, Init, Unsigned>,
+    pub count: Account<'info, PhantomData<AccountData<4usize, Count>>, Init, Unsigned>,
 }
 impl<'info> InitalizeAccounts<'info> {
     pub fn load(
@@ -34,7 +34,7 @@ impl<'info> InitalizeAccounts<'info> {
 }
 pub struct IncrementAccounts<'info> {
     pub user: AccountWritableSigned<'info, Empty>,
-    pub count: AccountWritable<'info, Count>,
+    pub count: AccountWritable<'info, AccountData<4usize, Count>>,
 }
 impl<'info> IncrementAccounts<'info> {
     pub fn load(
@@ -58,7 +58,7 @@ impl<'info> IncrementAccounts<'info> {
 }
 pub struct CloseAccounts<'info> {
     pub user: AccountWritableSigned<'info, Empty>,
-    pub count: AccountWritable<'info, Count>,
+    pub count: AccountWritable<'info, AccountData<4usize, Count>>,
 }
 impl<'info> CloseAccounts<'info> {
     pub fn load(

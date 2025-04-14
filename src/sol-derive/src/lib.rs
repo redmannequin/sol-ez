@@ -39,10 +39,8 @@ fn derive_account_data_2(
     };
 
     let tt = quote! {
-        impl AccountData for #name {
-            type DiscriminatorKind = [u8; #discriminator_size];
-
-            const SIZE: usize = #discriminator_size #(+ #field_sizes)*;
+        impl AccountDataConfig<#discriminator_size> for #name {
+            const DATA_SIZE: usize = #discriminator_size #(+ #field_sizes)*;
             const DISCRIMINATOR: [u8; #discriminator_size] = #discriminator;
         }
     };
@@ -50,7 +48,7 @@ fn derive_account_data_2(
     Ok(tt.into())
 }
 
-#[proc_macro_derive(AccountData, attributes(account_data))]
+#[proc_macro_derive(AccountDataConfig, attributes(account_data))]
 pub fn derive_account_data(input: TokenStream) -> TokenStream {
     derive_account_data_2(input.into()).unwrap().into()
 }

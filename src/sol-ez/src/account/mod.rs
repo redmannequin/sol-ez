@@ -1,4 +1,4 @@
-pub use pda::AccountData;
+pub use pda::{AccountData, AccountDataConfig};
 use pinocchio::pubkey::Pubkey;
 
 use crate::account_info::{

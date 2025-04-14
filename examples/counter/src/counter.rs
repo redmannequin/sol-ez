@@ -3,7 +3,7 @@ use crate::counter_contract::{
 };
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 use pinocchio_log::log;
-use sol_ez::{account::Account, account_info::AccountRead, Contract};
+use sol_ez::Contract;
 
 pub const FN: fn(&Pubkey, &[AccountInfo], &[u8]) -> Result<(), ProgramError> =
     CounterDispatcher::<MyCounter>::dispatch;
@@ -27,7 +27,7 @@ impl CounterContract for MyCounter {
     }
 
     fn increment(_owner: &Pubkey, mut accounts: IncrementAccounts) -> Result<(), ProgramError> {
-        validate(accounts.user.key(), &accounts.count)?;
+        validate(accounts.user.key(), accounts.count.as_ref())?;
         accounts.count.as_ref_mut().value += 1;
         let counter = accounts.count.apply()?;
         log!("Counter incremented to: {}", counter.as_ref().value);
@@ -35,18 +35,15 @@ impl CounterContract for MyCounter {
     }
 
     fn close(_owner: &Pubkey, mut accounts: CloseAccounts) -> Result<(), ProgramError> {
-        validate(accounts.user.key(), &accounts.count)?;
+        validate(accounts.user.key(), accounts.count.as_ref())?;
         accounts.count.close(&mut accounts.user)?;
         log!("Counter closed");
         Ok(())
     }
 }
 
-fn validate<S>(
-    user_key: &Pubkey,
-    count: &Account<Count, impl AccountRead, S>,
-) -> Result<(), ProgramError> {
-    if count.as_ref().authority != *user_key {
+fn validate(user_key: &Pubkey, count: &Count) -> Result<(), ProgramError> {
+    if count.authority != *user_key {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())

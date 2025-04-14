@@ -20,7 +20,7 @@ pub fn gen_from_config(config: Config) -> Result<TokenStream, SolGenError> {
         use core::marker::PhantomData;
 
         use borsh::{BorshDeserialize, BorshSerialize};
-        use sol_ez::{account::*, account_info::*, AccountData, DataSize};
+        use sol_ez::{account::*, account_info::*, AccountData, AccountDataConfig, DataSize};
         use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
 
         #types
@@ -175,8 +175,16 @@ fn gen_accounts(ix_name: &str, accounts: &[InstructionAccount]) -> TokenStream {
         let account_type = acc
             .payload
             .as_ref()
-            .map(|p| str_to_struct_name(&p, None))
-            .unwrap_or_else(|| str_to_struct_name("empty", None));
+            .map(|p| 
+                { 
+                    let size = p.discriminator_size as usize;
+                    let name = str_to_struct_name(&p.name, None);
+                    quote! { AccountData<#size,#name> }
+                }, 
+            )
+            .unwrap_or_else(|| { let name = str_to_struct_name("empty", None); quote!{ #name}});
+
+        
 
         let account_state = match (acc.state, acc.is_signed) {
             (IxAccountState::Create, _) => {
@@ -260,12 +268,12 @@ where
                 .map(|_| quote! { pub bump: u8}),
         );
     let discriminator_seed = D::account_seed(program_name, account);
-    let discriminator_size = account.discriminator.as_ref().map(|d| d.size).unwrap_or(4) as usize;
+    let discriminator_size = account.discriminator.as_ref().map(|d| d.size).unwrap_or(4) as usize; // TODO: FIX
 
     // TODO don't add discriminator if not defined
 
     quote! {
-        #[derive(BorshSerialize, BorshDeserialize, AccountData)]
+        #[derive(BorshSerialize, BorshDeserialize, AccountDataConfig)]
         #[account_data(hash(seed = #discriminator_seed,  size = #discriminator_size))]
         pub struct #account_name {
             #( #account_fields, )*

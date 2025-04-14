@@ -8,7 +8,7 @@ use pinocchio::{
     runtime::mock::{invoke, MockAccount, MockProgramAccount, MOCK_RUNTIME},
     ProgramResult,
 };
-use sol_ez::{AccountData, Contract, InstructionData};
+use sol_ez::{AccountDataConfig, Contract, InstructionData};
 
 fn system_program(
     _program_id: &Pubkey,

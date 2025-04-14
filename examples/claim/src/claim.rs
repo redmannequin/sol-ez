@@ -5,7 +5,7 @@ use crate::claim_contract::{
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 use pinocchio_log::log;
 use sol_ez::{
-    account::{AccountReadOnly, AccountSigned, AccountUnsigned, AccountWritable},
+    account::{AccountReadOnly, AccountSigned, AccountWritable},
     account_info::{AccountRead, Empty},
     Contract,
 };
@@ -22,7 +22,7 @@ impl ClaimContract for MyClaim {
         amount: u64,
         claim_authority: [u8; 32],
     ) -> Result<(), ProgramError> {
-        validate_config_manager(&accounts.claim_config, &accounts.manager_authority)?;
+        validate_config_manager(accounts.claim_config.as_ref(), &accounts.manager_authority)?;
         accounts.claim.init(
             Claim {
                 amount_acquired: amount,
@@ -43,8 +43,8 @@ impl ClaimContract for MyClaim {
         mut accounts: UpdateClaimAccounts,
         amount: u64,
     ) -> Result<(), ProgramError> {
-        validate_config_manager(&accounts.claim_config, &accounts.manager_authority)?;
-        validate_claim_manager(&accounts.claim, &accounts.manager_authority)?;
+        validate_config_manager(accounts.claim_config.as_ref(), &accounts.manager_authority)?;
+        validate_claim_manager(accounts.claim.as_ref(), &accounts.manager_authority)?;
         accounts.claim.as_ref_mut().amount_acquired += amount;
         accounts.claim.apply()?;
         log!("Claim Updated");
@@ -53,8 +53,8 @@ impl ClaimContract for MyClaim {
 
     fn claim(_program_id: &Pubkey, accounts: ClaimAccounts) -> Result<(), ProgramError> {
         validate_claim(
-            &accounts.claim,
-            &accounts.claim_config,
+            accounts.claim.as_ref(),
+            accounts.claim_config.as_ref(),
             &accounts.claim_authority,
             &accounts.manager_authority,
         )?;
@@ -93,7 +93,7 @@ impl ClaimContract for MyClaim {
         mut accounts: UpdateConfigAccounts,
         amount: u64,
     ) -> Result<(), ProgramError> {
-        validate_config_manager(&accounts.claim_config, &accounts.manager_authority)?;
+        validate_config_manager(accounts.claim_config.as_ref(), &accounts.manager_authority)?;
         accounts.claim_config.as_ref_mut().min_amount_to_claim = amount;
         accounts.claim_config.apply()?;
         log!("Claim Config Updated");
@@ -102,41 +102,41 @@ impl ClaimContract for MyClaim {
 }
 
 fn validate_config_manager(
-    config: &AccountUnsigned<ClaimConfig, impl AccountRead>,
+    config: &ClaimConfig,
     manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
-    if config.as_ref().manager_authority != *manager.key() {
+    if config.manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())
 }
 
 fn validate_claim_manager(
-    claim: &AccountUnsigned<Claim, impl AccountRead>,
+    claim: &Claim,
     manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
-    if claim.as_ref().manager_authority != *manager.key() {
+    if claim.manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())
 }
 
 fn validate_claim(
-    claim: &AccountWritable<Claim>,
-    claim_config: &AccountReadOnly<ClaimConfig>,
+    claim: &Claim,
+    claim_config: &ClaimConfig,
     claim_auth: &AccountWritable<Empty>,
     manager: &AccountReadOnly<Empty>,
 ) -> Result<(), ProgramError> {
-    if *claim_auth.key() != claim.as_ref().claim_authority {
+    if *claim_auth.key() != claim.claim_authority {
         return Err(ProgramError::IllegalOwner);
     }
-    if claim_config.as_ref().min_amount_to_claim > claim.as_ref().amount_acquired {
+    if claim_config.min_amount_to_claim > claim.amount_acquired {
         return Err(ProgramError::Custom(0));
     }
-    if claim.as_ref().manager_authority != *manager.key() {
+    if claim.manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
-    if claim_config.as_ref().manager_authority != *manager.key() {
+    if claim_config.manager_authority != *manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())

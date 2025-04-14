@@ -54,7 +54,12 @@ pub struct InstructionAccount {
     pub state: IxAccountState,
     pub is_signed: bool,
     pub seed: Option<Vec<String>>,
-    pub payload: Option<String>,
+    pub payload: Option<InstructionAccountData>,
+}
+
+pub struct InstructionAccountData {
+    pub name: String,
+    pub discriminator_size: u8,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -97,7 +102,7 @@ pub enum Type {
 
 impl From<config::Config> for MyIdl {
     fn from(value: config::Config) -> Self {
-        let accounts = value
+        let accounts: Vec<_> = value
             .accounts
             .into_iter()
             .map(|(name, acc)| Account {
@@ -155,7 +160,18 @@ impl From<config::Config> for MyIdl {
                 },
                 is_signed: acc.signed,
                 seed: acc.seed,
-                payload: acc.r#type,
+                payload: acc.r#type.map(|ty| InstructionAccountData {
+                    discriminator_size: accounts
+                        .iter()
+                        .find(|acc| acc.name.as_str() == &ty)
+                        .as_ref()
+                        .expect("account type missing")
+                        .discriminator
+                        .as_ref()
+                        .map(|x| x.size)
+                        .unwrap_or(4), // TODO: fix
+                    name: ty,
+                }),
             })
             .collect(),
             args: ix

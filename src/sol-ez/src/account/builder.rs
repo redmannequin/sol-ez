@@ -5,7 +5,7 @@ use pinocchio::program_error::ProgramError;
 
 use crate::account_info::{AccountInfo, AccountRead, Empty, Immutable, Mutable, Signed, Unsigned};
 
-use super::{Account, AccountData};
+use super::{pda::AccountDataConfig, Account, AccountData};
 
 pub struct Set<T>(PhantomData<T>);
 
@@ -37,9 +37,11 @@ impl<'info, M, S> AccountBuilder<'info, Empty, M, S> {
 }
 
 impl<'info, T, M, S> AccountBuilder<'info, Set<T>, M, S> {
-    pub fn build(self) -> Result<Account<'info, T, M, S>, ProgramError>
+    pub fn build<const DISCRIMINATOR_SIZE: usize>(
+        self,
+    ) -> Result<Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, M, S>, ProgramError>
     where
-        T: AccountData + BorshDeserialize,
+        T: AccountDataConfig<DISCRIMINATOR_SIZE> + BorshDeserialize,
         M: AccountRead,
     {
         Account::new(AccountInfo::new(self.account_info)?)
@@ -47,9 +49,11 @@ impl<'info, T, M, S> AccountBuilder<'info, Set<T>, M, S> {
 }
 
 impl<'info, M, S> AccountBuilder<'info, Empty, M, S> {
-    pub fn set_payload<T>(self) -> AccountBuilder<'info, Set<T>, M, S>
+    pub fn set_payload<const DISCRIMINATOR_SIZE: usize, T>(
+        self,
+    ) -> AccountBuilder<'info, Set<T>, M, S>
     where
-        T: AccountData + BorshDeserialize,
+        T: AccountDataConfig<DISCRIMINATOR_SIZE> + BorshDeserialize,
     {
         AccountBuilder {
             account_info: self.account_info,

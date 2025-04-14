@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use borsh::{BorshDeserialize, BorshSerialize};
-use sol_ez::{account::*, account_info::*, AccountData, DataSize};
+use sol_ez::{account::*, account_info::*, AccountData, AccountDataConfig, DataSize};
 use pinocchio::{program_error::ProgramError, pubkey::Pubkey};
-#[derive(BorshSerialize, BorshDeserialize, AccountData)]
+#[derive(BorshSerialize, BorshDeserialize, AccountDataConfig)]
 #[account_data(hash(seed = "claim|account|claim", size = 4usize))]
 pub struct Claim {
     pub amount_acquired: u64,
@@ -10,7 +10,7 @@ pub struct Claim {
     pub manager_authority: [u8; 32],
     pub bump: u8,
 }
-#[derive(BorshSerialize, BorshDeserialize, AccountData)]
+#[derive(BorshSerialize, BorshDeserialize, AccountDataConfig)]
 #[account_data(hash(seed = "claim|account|claim_config", size = 4usize))]
 pub struct ClaimConfig {
     pub manager_authority: [u8; 32],
@@ -20,8 +20,8 @@ pub struct ClaimConfig {
 }
 pub struct CreateClaimAccounts<'info> {
     pub manager_authority: AccountWritableSigned<'info, Empty>,
-    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
-    pub claim: Account<'info, PhantomData<Claim>, Init, Unsigned>,
+    pub claim_config: AccountReadOnly<'info, AccountData<4usize, ClaimConfig>>,
+    pub claim: Account<'info, PhantomData<AccountData<4usize, Claim>>, Init, Unsigned>,
 }
 impl<'info> CreateClaimAccounts<'info> {
     pub fn load(
@@ -49,8 +49,8 @@ impl<'info> CreateClaimAccounts<'info> {
 }
 pub struct UpdateClaimAccounts<'info> {
     pub manager_authority: AccountReadOnlySigned<'info, Empty>,
-    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
-    pub claim: AccountWritable<'info, Claim>,
+    pub claim_config: AccountReadOnly<'info, AccountData<4usize, ClaimConfig>>,
+    pub claim: AccountWritable<'info, AccountData<4usize, Claim>>,
 }
 impl<'info> UpdateClaimAccounts<'info> {
     pub fn load(
@@ -78,8 +78,8 @@ impl<'info> UpdateClaimAccounts<'info> {
 }
 pub struct ClaimAccounts<'info> {
     pub claim_authority: AccountWritable<'info, Empty>,
-    pub claim_config: AccountReadOnly<'info, ClaimConfig>,
-    pub claim: AccountWritable<'info, Claim>,
+    pub claim_config: AccountReadOnly<'info, AccountData<4usize, ClaimConfig>>,
+    pub claim: AccountWritable<'info, AccountData<4usize, Claim>>,
     pub manager_authority: AccountReadOnly<'info, Empty>,
     pub user_authority: AccountReadOnlySigned<'info, Empty>,
 }
@@ -118,7 +118,12 @@ impl<'info> ClaimAccounts<'info> {
 }
 pub struct CreateConfigAccounts<'info> {
     pub manager_authority: AccountWritableSigned<'info, Empty>,
-    pub claim_config: Account<'info, PhantomData<ClaimConfig>, Init, Unsigned>,
+    pub claim_config: Account<
+        'info,
+        PhantomData<AccountData<4usize, ClaimConfig>>,
+        Init,
+        Unsigned,
+    >,
 }
 impl<'info> CreateConfigAccounts<'info> {
     pub fn load(
@@ -141,7 +146,7 @@ impl<'info> CreateConfigAccounts<'info> {
 }
 pub struct UpdateConfigAccounts<'info> {
     pub manager_authority: AccountReadOnlySigned<'info, Empty>,
-    pub claim_config: AccountWritable<'info, ClaimConfig>,
+    pub claim_config: AccountWritable<'info, AccountData<4usize, ClaimConfig>>,
 }
 impl<'info> UpdateConfigAccounts<'info> {
     pub fn load(

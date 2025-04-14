@@ -5,7 +5,7 @@ use core::{mem::MaybeUninit, ptr};
 
 use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};
 
-pub use account::{AccountData, DataSize};
+pub use account::{AccountData, AccountDataConfig, DataSize};
 pub use instruction_data::InstructionData;
 
 pub mod account;
@@ -26,7 +26,7 @@ pub trait Seed<const D: usize, const N: usize> {
     fn seeds(keys: &Self::Accounts) -> [&[u8]; N];
 }
 
-pub use sol_derive::AccountData;
+pub use sol_derive::AccountDataConfig;
 
 /// Initializes a `[T; N]` array from a byte slice without bounds checks.
 ///
@@ -56,10 +56,25 @@ pub unsafe fn split_at_fixed_unchecked<'a, const N: usize, T>(
 ) -> (&'a [T; N], &'a [T]) {
     debug_assert!(src.len() >= N, "Slice length must be atleast N");
     let (a, b) = src.split_at_unchecked(N);
-    (slice_to_array_unchecked(a), b)
+    (slice_as_array_unchecked(a), b)
 }
 
-pub unsafe fn slice_to_array_unchecked<'a, T, const N: usize>(slice: &'a [T]) -> &'a [T; N] {
+pub unsafe fn slice_as_array_unchecked<'a, T, const N: usize>(slice: &'a [T]) -> &'a [T; N] {
     debug_assert_eq!(slice.len(), N, "Slice length must be exactly N");
     &*(slice.as_ptr() as *const [T; N])
+}
+
+pub unsafe fn split_at_mut_fixed_unchecked<'a, const N: usize, T>(
+    src: &'a mut [T],
+) -> (&'a mut [T; N], &'a mut [T]) {
+    debug_assert!(src.len() >= N, "Slice length must be at least N");
+    let (a, b) = src.split_at_mut_unchecked(N);
+    (slice_as_mut_array_unchecked(a), b)
+}
+
+pub unsafe fn slice_as_mut_array_unchecked<'a, T, const N: usize>(
+    slice: &'a mut [T],
+) -> &'a mut [T; N] {
+    debug_assert_eq!(slice.len(), N, "Slice length must be exactly N");
+    &mut *(slice.as_mut_ptr() as *mut [T; N])
 }
