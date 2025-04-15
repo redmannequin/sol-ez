@@ -47,7 +47,7 @@ fn cu(_b: &mut Bencher) {
 
     let account_metas = vec![
         AccountMeta::new(manager_id, true),
-        AccountMeta::new(config_id, true),
+        AccountMeta::new(config_id, false),
     ];
 
     MolluskComputeUnitBencher::new(mollusk)
