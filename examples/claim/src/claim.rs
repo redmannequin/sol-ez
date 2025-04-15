@@ -96,7 +96,6 @@ impl ClaimContract for MyClaim {
         validate_config_manager(accounts.claim_config.as_ref(), &accounts.manager_authority)?;
         accounts.claim_config.as_ref_mut().min_amount_to_claim = amount;
         accounts.claim_config.apply()?;
-        log!("Claim Config Updated");
         Ok(())
     }
 }
