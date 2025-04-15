@@ -17,7 +17,6 @@ sol-ez = { workspace = true }
 # external
 borsh = { workspace = true, features = ["derive"] }
 pinocchio = { workspace = true }
-pinocchio-log = "0.4"
 pinocchio-pubkey = "0.2"
 
 [build-dependencies]

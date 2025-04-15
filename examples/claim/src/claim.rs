@@ -3,7 +3,6 @@ use crate::claim_contract::{
     CreateConfigAccounts, UpdateClaimAccounts, UpdateConfigAccounts,
 };
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
-use pinocchio_log::log;
 use sol_ez::{
     account::{AccountReadOnly, AccountSigned, AccountWritable},
     account_info::{AccountRead, Empty},
@@ -16,6 +15,7 @@ pub const FN: fn(&Pubkey, &[AccountInfo], &[u8]) -> Result<(), ProgramError> =
 pub struct MyClaim;
 
 impl ClaimContract for MyClaim {
+    #[inline(always)]
     fn create_claim(
         program_id: &Pubkey,
         mut accounts: CreateClaimAccounts,
@@ -34,10 +34,10 @@ impl ClaimContract for MyClaim {
             &mut accounts.manager_authority,
             program_id,
         )?;
-        log!("Claim Created");
         Ok(())
     }
 
+    #[inline(always)]
     fn update_claim(
         _program_id: &Pubkey,
         mut accounts: UpdateClaimAccounts,
@@ -47,10 +47,10 @@ impl ClaimContract for MyClaim {
         validate_claim_manager(accounts.claim.as_ref(), &accounts.manager_authority)?;
         accounts.claim.as_ref_mut().amount_acquired += amount;
         accounts.claim.apply()?;
-        log!("Claim Updated");
         Ok(())
     }
 
+    #[inline(always)]
     fn claim(_program_id: &Pubkey, accounts: ClaimAccounts) -> Result<(), ProgramError> {
         validate_claim(
             accounts.claim.as_ref(),
@@ -61,18 +61,16 @@ impl ClaimContract for MyClaim {
 
         // TODO: create CPI call to token transfer to claim tokens
         // use accounts.user_authority
-
-        log!("Claim Claimed");
         Ok(())
     }
 
+    #[inline(always)]
     fn create_config(
         program_id: &Pubkey,
         mut accounts: CreateConfigAccounts,
         config_bump: u8,
         token_id: Pubkey,
     ) -> Result<(), ProgramError> {
-        log!("In Config Created");
         accounts.claim_config.init(
             ClaimConfig {
                 manager_authority: *accounts.manager_authority.key(),
@@ -84,7 +82,6 @@ impl ClaimContract for MyClaim {
             &mut accounts.manager_authority,
             program_id,
         )?;
-        log!("Claim Config Created");
         Ok(())
     }
 
@@ -100,6 +97,7 @@ impl ClaimContract for MyClaim {
     }
 }
 
+#[inline(always)]
 fn validate_config_manager(
     config: &ClaimConfig,
     manager: &AccountSigned<Empty, impl AccountRead>,
@@ -110,6 +108,7 @@ fn validate_config_manager(
     Ok(())
 }
 
+#[inline(always)]
 fn validate_claim_manager(
     claim: &Claim,
     manager: &AccountSigned<Empty, impl AccountRead>,
@@ -120,6 +119,7 @@ fn validate_claim_manager(
     Ok(())
 }
 
+#[inline(always)]
 fn validate_claim(
     claim: &Claim,
     claim_config: &ClaimConfig,

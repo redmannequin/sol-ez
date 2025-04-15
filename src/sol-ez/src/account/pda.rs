@@ -2,6 +2,7 @@ use core::{marker::PhantomData, ptr};
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use pinocchio::{
+    instruction::{Seed, Signer},
     program_error::ProgramError,
     pubkey::{self, Pubkey},
     sysvars::{rent::Rent, Sysvar},
@@ -167,11 +168,11 @@ where
         }
     }
 
-    pub fn init<P, PA, PS>(
+    pub fn init<P, PA>(
         mut self,
         account: T,
         bump: u8,
-        payer: &mut Account<'info, P, PA, PS>,
+        payer: &mut Account<'info, P, PA, Signed>,
         owner: &Pubkey,
     ) -> Result<Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, Immutable, Unsigned>, ProgramError>
     where
@@ -185,7 +186,8 @@ where
 
             // TODO: set seed
             let seed = b"todo";
-            let pda = pubkey::create_program_address(&[seed, &[bump]], owner)?;
+            let seeds = [seed.as_slice(), &[bump]];
+            let pda = pubkey::create_program_address(&seeds, owner)?;
 
             if *account_info.key() != pda {
                 return Err(ProgramError::IllegalOwner);
@@ -202,7 +204,7 @@ where
                     space: (T::DATA_SIZE + DISCRIMINATOR_SIZE) as u64,
                     owner,
                 }
-                .invoke()?;
+                .invoke_signed(&[Signer::from(&[Seed::from(seed), Seed::from(&[bump])])])?;
                 Ok(())
             })
         })?;

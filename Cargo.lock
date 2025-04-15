@@ -508,7 +508,6 @@ dependencies = [
  "mollusk-svm",
  "mollusk-svm-bencher",
  "pinocchio",
- "pinocchio-log",
  "pinocchio-pubkey",
  "pinocchio-system",
  "sol-ez",
