@@ -46,6 +46,7 @@ impl ClaimContract for MyClaim {
         validate_config_manager(accounts.claim_config.as_ref(), &accounts.manager_authority)?;
         validate_claim_manager(accounts.claim.as_ref(), &accounts.manager_authority)?;
         accounts.claim.as_ref_mut().amount_acquired += amount;
+        pinocchio::log::sol_log("testing");
         accounts.claim.apply()?;
         Ok(())
     }
@@ -71,7 +72,7 @@ impl ClaimContract for MyClaim {
         config_bump: u8,
         token_id: Pubkey,
     ) -> Result<(), ProgramError> {
-        accounts.claim_config.init(
+        accounts.claim_config.init2(
             ClaimConfig {
                 manager_authority: *accounts.manager_authority.key(),
                 min_amount_to_claim: 0,
@@ -81,8 +82,7 @@ impl ClaimContract for MyClaim {
             config_bump,
             &mut accounts.manager_authority,
             program_id,
-        )?;
-        Ok(())
+        )
     }
 
     fn update_config(
@@ -102,7 +102,7 @@ fn validate_config_manager(
     config: &ClaimConfig,
     manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
-    if config.manager_authority != *manager.key() {
+    if &config.manager_authority != manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())
@@ -113,7 +113,7 @@ fn validate_claim_manager(
     claim: &Claim,
     manager: &AccountSigned<Empty, impl AccountRead>,
 ) -> Result<(), ProgramError> {
-    if claim.manager_authority != *manager.key() {
+    if &claim.manager_authority != manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())
@@ -126,16 +126,16 @@ fn validate_claim(
     claim_auth: &AccountWritable<Empty>,
     manager: &AccountReadOnly<Empty>,
 ) -> Result<(), ProgramError> {
-    if *claim_auth.key() != claim.claim_authority {
+    if claim_auth.key() != &claim.claim_authority {
         return Err(ProgramError::IllegalOwner);
     }
     if claim_config.min_amount_to_claim > claim.amount_acquired {
         return Err(ProgramError::Custom(0));
     }
-    if claim.manager_authority != *manager.key() {
+    if &claim.manager_authority != manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
-    if claim_config.manager_authority != *manager.key() {
+    if &claim_config.manager_authority != manager.key() {
         return Err(ProgramError::IllegalOwner);
     }
     Ok(())

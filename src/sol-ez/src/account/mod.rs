@@ -1,9 +1,7 @@
 pub use pda::{AccountData, AccountDataConfig};
 use pinocchio::pubkey::Pubkey;
 
-use crate::account_info::{
-    AccountInfo, AccountRead, AccountWrite, Immutable, Mutable, Signed, Unsigned,
-};
+use crate::account_info::{AccountInfo, AccountRead, Immutable, Mutable, Signed, Unsigned};
 
 pub use builder::AccountBuilder;
 
@@ -61,25 +59,18 @@ impl<'info, T, P, S> Account<'info, T, P, S> {
     {
         self.account_info.lamports()
     }
+}
 
-    pub fn set_lamports(&mut self, lamports: u64)
-    where
-        P: AccountWrite,
-    {
+impl<'info, T, S> Account<'info, T, Mutable, S> {
+    pub fn set_lamports(&mut self, lamports: u64) {
         self.account_info.set_lamports(lamports)
     }
 
-    pub fn account_info(&self) -> &AccountInfo<'info, P, S>
-    where
-        P: AccountWrite,
-    {
+    pub fn account_info(&self) -> &AccountInfo<'info, Mutable, S> {
         &self.account_info
     }
 
-    pub fn account_info_mut(&mut self) -> &mut AccountInfo<'info, P, S>
-    where
-        P: AccountWrite,
-    {
+    pub fn account_info_mut(&mut self) -> &mut AccountInfo<'info, Mutable, S> {
         &mut self.account_info
     }
 }

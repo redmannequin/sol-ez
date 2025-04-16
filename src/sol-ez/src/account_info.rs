@@ -203,6 +203,7 @@ pub struct AccountInfo<'info, M, S> {
 }
 
 impl<'info, M, S> AccountInfo<'info, M, S> {
+    #[inline(always)]
     pub fn new(
         account_info: &'info pinocchio::AccountInfo,
     ) -> Result<Self, pinocchio::ProgramError> {
@@ -215,6 +216,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         })
     }
 
+    #[inline(always)]
     pub fn to_raw_account_info(self) -> &'info pinocchio::AccountInfo {
         self.inner
     }
@@ -229,15 +231,18 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         Ok(())
     }
 
+    #[inline(always)]
     pub fn key(&self) -> &pinocchio::Pubkey {
         self.inner.key()
     }
 
+    #[inline(always)]
     pub fn is_signer(&self) -> bool {
         self.inner.is_signer()
     }
 
     /// Retruns the owner of the account.
+    #[inline(always)]
     pub fn owner(&self) -> &pinocchio::Pubkey {
         // SAFETY: The borrow checker ensures that `assign` cannot be called
         // while a reference from `owner` exists.
@@ -245,6 +250,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
     }
 
     /// Assigns new owner to the account.
+    #[inline(always)]
     pub fn assign(&mut self, owner: &pinocchio::Pubkey)
     where
         M: AccountWrite,
@@ -254,6 +260,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         unsafe { self.inner.assign(owner) };
     }
 
+    #[inline(always)]
     pub fn data(&self) -> &[u8]
     where
         M: AccountRead,
@@ -261,6 +268,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         unsafe { self.inner.borrow_data_unchecked() }
     }
 
+    #[inline(always)]
     pub fn data_mut(&mut self) -> &mut [u8]
     where
         M: AccountWrite,
@@ -268,10 +276,12 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         unsafe { self.inner.borrow_mut_data_unchecked() }
     }
 
+    #[inline(always)]
     pub fn data_is_empty(&self) -> bool {
         self.inner.data_is_empty()
     }
 
+    #[inline(always)]
     pub fn lamports(&self) -> u64
     where
         M: AccountRead,
@@ -279,6 +289,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         self.inner.lamports()
     }
 
+    #[inline(always)]
     pub fn lamports_mut(&mut self) -> &mut u64
     where
         M: AccountWrite,
@@ -286,6 +297,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         unsafe { self.inner.borrow_mut_lamports_unchecked() }
     }
 
+    #[inline(always)]
     pub fn set_lamports(&mut self, lamports: u64)
     where
         M: AccountWrite,
@@ -295,6 +307,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         }
     }
 
+    #[inline(always)]
     pub fn add_lamports(&mut self, lamports: u64) -> Result<(), pinocchio::ProgramError>
     where
         M: AccountWrite,
@@ -307,6 +320,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         ))
     }
 
+    #[inline(always)]
     pub fn sub_lamports(&mut self, lamports: u64) -> Result<(), pinocchio::ProgramError>
     where
         M: AccountWrite,
@@ -319,6 +333,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         ))
     }
 
+    #[inline(always)]
     pub fn zero_out_lamports(&mut self) -> Result<u64, pinocchio::ProgramError>
     where
         M: AccountWrite,
@@ -328,6 +343,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         Ok(lamports)
     }
 
+    #[inline(always)]
     pub fn realloc(&mut self, len: usize, zero_init: bool) -> Result<(), pinocchio::ProgramError>
     where
         M: AccountWrite,
@@ -335,6 +351,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
         self.inner.realloc(len, zero_init)
     }
 
+    #[inline(always)]
     pub fn close(self)
     where
         M: AccountWrite,
@@ -344,6 +361,7 @@ impl<'info, M, S> AccountInfo<'info, M, S> {
 }
 
 impl<'info, S> AccountInfo<'info, Init, S> {
+    #[inline(always)]
     pub fn new_init(
         account_info: &'info pinocchio::AccountInfo,
     ) -> Result<Self, pinocchio::ProgramError> {
@@ -355,6 +373,7 @@ impl<'info, M, S> AccountInfo<'info, M, S>
 where
     M: AccountWrite,
 {
+    #[inline(always)]
     pub fn to_read(self) -> AccountInfo<'info, Immutable, S> {
         AccountInfo {
             inner: self.inner,

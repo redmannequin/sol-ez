@@ -45,6 +45,7 @@ pub use sol_derive::AccountDataConfig;
 ///
 /// In debug builds, this will panic if `src.len() != N`.
 /// ```
+#[inline(always)]
 pub unsafe fn init_from_slice_unchecked<const N: usize, T>(src: &[T]) -> [T; N]
 where
     T: Copy,
@@ -55,6 +56,7 @@ where
     buf.assume_init()
 }
 
+#[inline(always)]
 pub unsafe fn split_at_fixed_unchecked<'a, const N: usize, T>(
     src: &'a [T],
 ) -> (&'a [T; N], &'a [T]) {
@@ -63,11 +65,13 @@ pub unsafe fn split_at_fixed_unchecked<'a, const N: usize, T>(
     (slice_as_array_unchecked(a), b)
 }
 
+#[inline(always)]
 pub unsafe fn slice_as_array_unchecked<'a, T, const N: usize>(slice: &'a [T]) -> &'a [T; N] {
     debug_assert_eq!(slice.len(), N, "Slice length must be exactly N");
     &*(slice.as_ptr() as *const [T; N])
 }
 
+#[inline(always)]
 pub unsafe fn split_at_mut_fixed_unchecked<'a, const N: usize, T>(
     src: &'a mut [T],
 ) -> (&'a mut [T; N], &'a mut [T]) {
@@ -76,6 +80,7 @@ pub unsafe fn split_at_mut_fixed_unchecked<'a, const N: usize, T>(
     (slice_as_mut_array_unchecked(a), b)
 }
 
+#[inline(always)]
 pub unsafe fn slice_as_mut_array_unchecked<'a, T, const N: usize>(
     slice: &'a mut [T],
 ) -> &'a mut [T; N] {

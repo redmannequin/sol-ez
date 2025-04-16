@@ -10,7 +10,9 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 
 use crate::{
-    account_info::{AccountInfo, AccountRead, AccountWrite, Immutable, Init, Signed, Unsigned},
+    account_info::{
+        AccountInfo, AccountRead, AccountWrite, Immutable, Init, Mutable, Signed, Unsigned,
+    },
     split_at_fixed_unchecked,
 };
 
@@ -141,13 +143,12 @@ where
         })
     }
 
-    pub fn close<D, DP>(
+    pub fn close<D>(
         self,
-        signer: &mut Account<'info, D, DP, Signed>,
+        signer: &mut Account<'info, D, Mutable, Signed>,
     ) -> Result<(), ProgramError>
     where
         P: AccountWrite + AccountRead,
-        DP: AccountWrite + AccountRead,
     {
         let lamports = self.account_info.lamports();
         signer.account_info.add_lamports(lamports)?;
@@ -168,16 +169,15 @@ where
         }
     }
 
-    pub fn init<P, PA>(
+    pub fn init<P>(
         mut self,
         account: T,
         bump: u8,
-        payer: &mut Account<'info, P, PA, Signed>,
+        payer: &mut Account<'info, P, Mutable, Signed>,
         owner: &Pubkey,
     ) -> Result<Account<'info, AccountData<DISCRIMINATOR_SIZE, T>, Immutable, Unsigned>, ProgramError>
     where
         T: BorshSerialize,
-        PA: AccountWrite,
     {
         self.account_info.while_released(|account_info| {
             if !account_info.data_is_empty() {
@@ -216,5 +216,51 @@ where
             inner: account,
             account_info: self.account_info.to_read(),
         })
+    }
+
+    pub fn init2<P>(
+        mut self,
+        account: T,
+        bump: u8,
+        payer: &mut Account<'info, P, Mutable, Signed>,
+        owner: &Pubkey,
+    ) -> Result<(), ProgramError>
+    where
+        T: BorshSerialize,
+    {
+        self.account_info.while_released(|account_info| {
+            if !account_info.data_is_empty() {
+                return Err(ProgramError::AccountAlreadyInitialized);
+            }
+
+            // TODO: set seed
+            let seed = b"todo";
+            let seeds = [seed.as_slice(), &[bump]];
+            let pda = pubkey::create_program_address(&seeds, owner)?;
+
+            if *account_info.key() != pda {
+                return Err(ProgramError::IllegalOwner);
+            }
+
+            let rent = Rent::get()?;
+            let required_lamports = rent.minimum_balance(T::DATA_SIZE + DISCRIMINATOR_SIZE);
+
+            payer.account_info.while_released(|payer| {
+                CreateAccount {
+                    from: payer,
+                    to: account_info,
+                    lamports: required_lamports,
+                    space: (T::DATA_SIZE + DISCRIMINATOR_SIZE) as u64,
+                    owner,
+                }
+                .invoke_signed(&[Signer::from(&[Seed::from(seed), Seed::from(&[bump])])])?;
+                Ok(())
+            })
+        })?;
+
+        let account = AccountData { inner: account };
+        AccountData::serialize(&account, &mut self.account_info)?;
+
+        Ok(())
     }
 }
