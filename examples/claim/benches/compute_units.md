@@ -1,3 +1,13 @@
+#### 2025-04-16 09:55:16.975953038 UTC
+
+Solana CLI Version: solana-cli 2.2.6 (src:e5cdee7c; feat:4066693973, client:Agave)
+
+| Name | CUs | Delta |
+|------|------|-------|
+| create_config | 8388 | -52 |
+| update_config | 528 | -- |
+| update_claim | 863 | - new - |
+
 #### 2025-04-15 19:54:20.216585759 UTC
 
 Solana CLI Version: solana-cli 2.2.6 (src:e5cdee7c; feat:4066693973, client:Agave)
