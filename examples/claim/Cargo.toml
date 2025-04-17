@@ -14,6 +14,7 @@ harnes = false
 # local
 sol-ez = { workspace = true }
 
+
 # external
 borsh = { workspace = true, features = ["derive"] }
 pinocchio = { workspace = true }
@@ -27,9 +28,12 @@ bpf = []
 
 [dev-dependencies]
 sol-ez = { workspace = true, features = ["std"] }
+sol-log-parser = { workspace = true }
 
-mollusk-svm = "0.1"
-mollusk-svm-bencher = "0.1"
+chrono = "0.4"
+mollusk-svm = { git = "https://github.com/redmannequin/mollusk.git", branch = "adds-cpi-cus-consumed-to-bench" }
+mollusk-svm-bencher = { git = "https://github.com/redmannequin/mollusk.git", branch = "adds-cpi-cus-consumed-to-bench" }
+num-format = "0.4"
 solana-account = "2.2"
 solana-instruction = "2.2"
 solana-pubkey = "2.2"

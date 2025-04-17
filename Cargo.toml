@@ -6,6 +6,7 @@ members = [
     "src/sol-ez",
     "src/sol-gen",
     "src/sol-gen-common",
+    "src/sol-log-parser",
 ]
 resolver = "2"
 
@@ -15,6 +16,7 @@ sol-derive = { path = "src/sol-derive" }
 sol-ez = { path = "src/sol-ez" }
 sol-gen = { path = "src/sol-gen" }
 sol-gen-common = { path = "src/sol-gen-common" }
+sol-log-parser = { path = "src/sol-log-parser" }
 
 # external
 anyhow = "1.0"

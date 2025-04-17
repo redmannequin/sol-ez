@@ -1,0 +1,12 @@
+[package]
+name = "sol-log-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.22"
+solana-pubkey = "2.2"
+thiserror = "2.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4"

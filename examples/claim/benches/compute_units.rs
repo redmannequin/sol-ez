@@ -2,17 +2,23 @@
 
 extern crate test;
 
+use std::{cell::RefCell, rc::Rc};
+
 use claim::{Claim, ClaimConfig, CREATE_CONFIG, UPDATE_CLAIM, UPDATE_CONFIG};
+use mollusk::{write_results, MyBenchResult};
 use mollusk_svm::{
     program::{create_program_account_loader_v3, loader_keys::LOADER_V3},
     Mollusk,
 };
 use mollusk_svm_bencher::MolluskComputeUnitBencher;
 use sol_ez::AccountDataConfig;
+use sol_log_parser::{ParsedLog, ParsedStructuredLog, RawLog};
 use solana_account::Account;
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
 use test::Bencher;
+
+mod mollusk;
 
 #[bench]
 fn cu(_b: &mut Bencher) {
@@ -23,9 +29,11 @@ fn cu(_b: &mut Bencher) {
     let (config_id, config_bump) = Pubkey::find_program_address(&[b"todo"], &program_id);
     let (claim_id, claim_bump) = Pubkey::find_program_address(&[b"claim"], &program_id);
 
-    let mut mollusk = Mollusk::new(&program_id, "claim");
     let system_program_id = Pubkey::new_from_array(pinocchio_system::ID);
+
+    let mut mollusk = Mollusk::new(&program_id, "claim");
     mollusk.add_program(&system_program_id, "solana_system_program", &LOADER_V3);
+    mollusk.logger = Some(Rc::new(RefCell::new(Default::default())));
 
     let manager_account = (manager_id, Account::new(10000000, 0, &system_program_id));
 
@@ -155,10 +163,50 @@ fn cu(_b: &mut Bencher) {
      *  BENCH
      * *********************************************************************** */
 
-    MolluskComputeUnitBencher::new(mollusk)
+    let mut bench = MolluskComputeUnitBencher::new(mollusk)
         .bench(config_create)
         .bench(config_update)
         .bench(claim_update)
-        .must_pass(true)
-        .execute();
+        .must_pass(true);
+
+    let results = bench
+        .execute_without_write()
+        .into_iter()
+        .map(|res| {
+            eprintln!("{:?}", res.logs);
+            let cus_breakdown = res.logs.and_then(|logs| {
+                let parsed_logs = logs
+                    .iter()
+                    .map(|s| ParsedLog::from_raw(&RawLog::parse(s.as_str())))
+                    .collect::<Result<Vec<_>, _>>()
+                    .ok()?;
+
+                let structured_log = &ParsedStructuredLog::from_parsed_logs(parsed_logs)[0];
+
+                eprintln!("{:?}", structured_log);
+
+                let cpi_cus = structured_log.cpi_logs.iter().fold(0, |acc, log| {
+                    acc + log.compute_log.as_ref().map(|cu| cu.consumed).unwrap_or(0)
+                });
+
+                let root_cus = structured_log
+                    .compute_log
+                    .as_ref()
+                    .map(|log| log.consumed)
+                    .unwrap_or(0)
+                    - cpi_cus;
+
+                Some((root_cus, cpi_cus))
+            });
+
+            MyBenchResult {
+                name: res.name,
+                cus_consumed: res.cus_consumed,
+                root_cus_consumed: cus_breakdown.as_ref().map(|(cu, _)| *cu),
+                cpi_cus_consumed: cus_breakdown.as_ref().map(|(_, cu)| *cu),
+            }
+        })
+        .collect();
+
+    write_results(results);
 }
