@@ -5,7 +5,7 @@ members = [
     "src/sol-derive",
     "src/sol-ez",
     "src/sol-gen",
-    "src/sol-gen-common",
+    "src/sol-gen-common", "src/sol-log-parser",
 ]
 resolver = "2"
 
