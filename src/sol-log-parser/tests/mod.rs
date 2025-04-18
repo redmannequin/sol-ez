@@ -1,12 +1,12 @@
 use pretty_assertions::assert_eq;
 use sol_log_parser::{
-    LogParseError, ParsedLog, ParsedStructuredLog, RawLog,
     parsed_log::{
         ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedProgramLog,
         ParsedSuccessLog,
     },
     raw_log::{RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawProgramLog, RawSuccessLog},
     structured_log::parsed::ParsedProgramResult,
+    LogParseError, ParsedLog, ParsedStructuredLog, RawLog,
 };
 use solana_pubkey::Pubkey;
 
@@ -28,6 +28,7 @@ pub fn invoke_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Invoke(ParsedInvokeLog {
+            raw: "Program 11111111111111111111111111111111 invoke [1]".into(),
             program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
             depth: 1
         })
@@ -51,6 +52,7 @@ pub fn success_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Success(ParsedSuccessLog {
+            raw: "Program 11111111111111111111111111111111 success".into(),
             program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
         })
     )
@@ -74,6 +76,7 @@ pub fn failed_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Failed(ParsedFailedLog {
+            raw: "Program 11111111111111111111111111111111 failed: insufficient funds".into(),
             program_id: Pubkey::from_str_const("111111111111111111111111111111111"),
             err: String::from("insufficient funds")
         })
@@ -97,6 +100,7 @@ pub fn program_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Log(ParsedProgramLog {
+            raw: "Program log: Hello from inside the program".into(),
             msg: String::from("Hello from inside the program")
         })
     )
@@ -119,6 +123,7 @@ pub fn data_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Data(ParsedDataLog {
+            raw: "Program data: aGVsbG8gc29sYW5h".into(),
             data: b"hello solana".to_vec()
         })
     )
@@ -143,6 +148,8 @@ pub fn cu_log() {
     assert_eq!(
         parsed_log,
         ParsedLog::Cu(ParsedCuLog {
+            raw: "Program 11111111111111111111111111111111 consumed 1820 of 200000 compute units"
+                .into(),
             program_id: Pubkey::from_str_const("111111111111111111111111111111111"),
             consumed: 1820,
             budget: 200000
@@ -189,6 +196,7 @@ fn structured_log() {
             data_logs: vec![],
             return_data: None,
             compute_log: Some(ParsedCuLog {
+                raw: "Program D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns consumed 8388 of 1400000 compute units".into(),
                 program_id: Pubkey::from_str_const("D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns"),
                 consumed: 8388,
                 budget: 1400000
@@ -198,53 +206,29 @@ fn structured_log() {
                 depth: 2,
                 result: ParsedProgramResult::Success,
                 program_logs: vec![ParsedProgramLog {
+                    raw: "Program log: Instruction: CreateAccount".into(),
                     msg: String::from("Instruction: CreateAccount")
                 }],
                 data_logs: vec![],
                 return_data: None,
                 compute_log: Some(ParsedCuLog {
+                    raw: "Program 11111111111111111111111111111111 consumed 4731 of 1396590 compute units".into(),
                     program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
                     consumed: 4731,
                     budget: 1396590
                 }),
                 cpi_logs: vec![],
                 raw_logs: vec![
-                    ParsedLog::Invoke(ParsedInvokeLog {
-                        program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
-                        depth: 2
-                    }),
-                    ParsedLog::Log(ParsedProgramLog {
-                        msg: String::from("Instruction: CreateAccount")
-                    }),
-                    ParsedLog::Cu(ParsedCuLog {
-                        program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
-                        consumed: 4731,
-                        budget: 1396590
-                    }),
-                    ParsedLog::Success(ParsedSuccessLog {
-                        program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
-                    }),
+                    "Program 11111111111111111111111111111111 invoke [2]".into(),
+                    "Program log: Instruction: CreateAccount".into(),
+                    "Program 11111111111111111111111111111111 consumed 4731 of 1396590 compute units".into(),
+                    "Program 11111111111111111111111111111111 success".into(),
                 ]
             }],
             raw_logs: vec![
-                ParsedLog::Invoke(ParsedInvokeLog {
-                    program_id: Pubkey::from_str_const(
-                        "D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns"
-                    ),
-                    depth: 1
-                }),
-                ParsedLog::Cu(ParsedCuLog {
-                    program_id: Pubkey::from_str_const(
-                        "D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns"
-                    ),
-                    consumed: 8388,
-                    budget: 1400000
-                }),
-                ParsedLog::Success(ParsedSuccessLog {
-                    program_id: Pubkey::from_str_const(
-                        "D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns"
-                    ),
-                }),
+                "Program D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns invoke [1]".into(),
+                "Program D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns consumed 8388 of 1400000 compute units".into(),
+                "Program D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns success".into(),
             ]
         }
     )

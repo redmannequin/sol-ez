@@ -1,14 +1,14 @@
 use std::str::FromStr;
 
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use solana_pubkey::Pubkey;
 
 use crate::{
-    Result,
     raw_log::{
-        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawProgramLog, RawReturnLog,
-        RawSuccessLog,
+        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawOtherLog, RawProgramLog,
+        RawReturnLog, RawSuccessLog,
     },
+    Result,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub enum ParsedLog {
     Data(ParsedDataLog),
     Return(ParsedReturnLog),
     Cu(ParsedCuLog),
-    Other(String),
+    Other(ParsedOtherLog),
 }
 
 impl ParsedLog {
@@ -33,7 +33,7 @@ impl ParsedLog {
             RawLog::Data(log) => ParsedDataLog::from_raw(log).map(ParsedLog::from),
             RawLog::Return(log) => ParsedReturnLog::from_raw(log).map(ParsedLog::from),
             RawLog::Cu(log) => ParsedCuLog::from_raw(log).map(ParsedLog::from),
-            RawLog::Other(log) => Ok(ParsedLog::Other(log.to_string())),
+            RawLog::Other(log) => ParsedOtherLog::from_raw(log).map(ParsedLog::from),
         }
     }
 }
@@ -75,11 +75,17 @@ impl From<ParsedCuLog> for ParsedLog {
     }
 }
 
+impl From<ParsedOtherLog> for ParsedLog {
+    fn from(value: ParsedOtherLog) -> Self {
+        ParsedLog::Other(value)
+    }
+}
 // A Program Invoke Log
 ///
 /// `Program <id> invoke [n]`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedInvokeLog {
+    pub raw: String,
     pub program_id: Pubkey,
     pub depth: u8,
 }
@@ -87,6 +93,7 @@ pub struct ParsedInvokeLog {
 impl ParsedInvokeLog {
     pub fn from_raw(log: &RawInvokeLog) -> Result<Self> {
         Ok(ParsedInvokeLog {
+            raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
             depth: log.depth,
         })
@@ -98,12 +105,14 @@ impl ParsedInvokeLog {
 /// `Program <id> success`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedSuccessLog {
+    pub raw: String,
     pub program_id: Pubkey,
 }
 
 impl ParsedSuccessLog {
     pub fn from_raw(log: &RawSuccessLog) -> Result<Self> {
         Ok(ParsedSuccessLog {
+            raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
         })
     }
@@ -114,6 +123,7 @@ impl ParsedSuccessLog {
 /// `Program <id> failed: <err>`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedFailedLog {
+    pub raw: String,
     pub program_id: Pubkey,
     pub err: String,
 }
@@ -121,6 +131,7 @@ pub struct ParsedFailedLog {
 impl ParsedFailedLog {
     pub fn from_raw(log: &RawFailedLog) -> Result<Self> {
         Ok(ParsedFailedLog {
+            raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
             err: log.err.to_string(),
         })
@@ -132,12 +143,14 @@ impl ParsedFailedLog {
 /// `Program log: <msg>`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedProgramLog {
+    pub raw: String,
     pub msg: String,
 }
 
 impl ParsedProgramLog {
     pub fn from_raw(log: &RawProgramLog) -> Result<Self> {
         Ok(ParsedProgramLog {
+            raw: log.raw.to_string(),
             msg: log.msg.to_string(),
         })
     }
@@ -148,12 +161,14 @@ impl ParsedProgramLog {
 /// `Program data: <base64>`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedDataLog {
+    pub raw: String,
     pub data: Vec<u8>,
 }
 
 impl ParsedDataLog {
     pub fn from_raw(log: &RawDataLog) -> Result<Self> {
         Ok(ParsedDataLog {
+            raw: log.raw.to_string(),
             data: BASE64_STANDARD.decode(log.data)?,
         })
     }
@@ -164,6 +179,7 @@ impl ParsedDataLog {
 /// `Program return: <id> <base64>`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedReturnLog {
+    pub raw: String,
     pub program_id: Pubkey,
     pub data: Vec<u8>,
 }
@@ -171,6 +187,7 @@ pub struct ParsedReturnLog {
 impl ParsedReturnLog {
     pub fn from_raw(log: &RawReturnLog) -> Result<Self> {
         Ok(ParsedReturnLog {
+            raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
             data: BASE64_STANDARD.decode(log.data)?,
         })
@@ -182,6 +199,7 @@ impl ParsedReturnLog {
 /// `Program <id> consumed <x> of <y> compute units`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedCuLog {
+    pub raw: String,
     pub program_id: Pubkey,
     pub consumed: u64,
     pub budget: u64,
@@ -190,9 +208,23 @@ pub struct ParsedCuLog {
 impl ParsedCuLog {
     pub fn from_raw(log: &RawCuLog) -> Result<Self> {
         Ok(ParsedCuLog {
+            raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
             consumed: log.consumed.parse()?,
             budget: log.budget.parse()?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedOtherLog {
+    pub raw: String,
+}
+
+impl ParsedOtherLog {
+    pub fn from_raw(log: &RawOtherLog) -> Result<Self> {
+        Ok(ParsedOtherLog {
+            raw: log.raw.to_string(),
         })
     }
 }
@@ -204,77 +236,74 @@ impl ParsedCuLog {
 mod helper_code {
     use solana_pubkey::Pubkey;
 
-    use crate::structured_log::{FailedLog, InvokeLog, Log, Log2, ReturnLog, SuccessLog};
+    use crate::structured_log::{FailedLog, InvokeLog, Log, ReturnLog, SuccessLog};
 
     use super::{
-        ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedLog, ParsedProgramLog,
-        ParsedReturnLog, ParsedSuccessLog,
+        ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedOtherLog,
+        ParsedProgramLog, ParsedReturnLog, ParsedSuccessLog,
     };
 
-    type Log2Helper = Log2<
-        ParsedInvokeLog,
-        ParsedSuccessLog,
-        ParsedFailedLog,
-        ParsedProgramLog,
-        ParsedDataLog,
-        ParsedReturnLog,
-        ParsedCuLog,
-        String,
-    >;
-
     impl Log for ParsedInvokeLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Invoke(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedSuccessLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Success(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedFailedLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Failed(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedProgramLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Log(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedDataLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Data(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedReturnLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Return(self.clone()).into()
+            self.raw.clone()
         }
     }
 
     impl Log for ParsedCuLog {
-        type RawLog = Log2Helper;
+        type RawLog = String;
 
         fn raw_log(&self) -> Self::RawLog {
-            ParsedLog::Cu(self.clone()).into()
+            self.raw.clone()
+        }
+    }
+
+    impl Log for ParsedOtherLog {
+        type RawLog = String;
+
+        fn raw_log(&self) -> Self::RawLog {
+            self.raw.clone()
         }
     }
 
