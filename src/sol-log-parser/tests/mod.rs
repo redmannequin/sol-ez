@@ -139,8 +139,8 @@ pub fn cu_log() {
         RawLog::Cu(RawCuLog {
             raw: "Program 11111111111111111111111111111111 consumed 1820 of 200000 compute units",
             program_id: "11111111111111111111111111111111",
-            consumed: "1820",
-            budget: "200000"
+            consumed: 1820,
+            budget: 200000
         })
     );
 

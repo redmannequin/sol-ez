@@ -210,8 +210,8 @@ impl ParsedCuLog {
         Ok(ParsedCuLog {
             raw: log.raw.to_string(),
             program_id: Pubkey::from_str(log.program_id)?,
-            consumed: log.consumed.parse()?,
-            budget: log.budget.parse()?,
+            consumed: log.consumed,
+            budget: log.budget,
         })
     }
 }

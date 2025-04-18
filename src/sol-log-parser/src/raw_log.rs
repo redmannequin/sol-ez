@@ -46,6 +46,10 @@ impl<'a> RawLog<'a> {
                 return RawLog::Other(RawOtherLog { raw: log });
             };
 
+            if !quick_pubkey_check(program_id) {
+                return RawLog::Other(RawOtherLog { raw: log });
+            }
+
             if let Some(depth) = suffix
                 .strip_prefix("invoke [")
                 .and_then(|s| s.strip_suffix(']'))
@@ -86,17 +90,32 @@ impl<'a> RawLog<'a> {
                     return RawLog::Other(RawOtherLog { raw: log });
                 };
 
-                return RawLog::Cu(RawCuLog {
-                    raw: log,
-                    program_id,
-                    consumed,
-                    budget,
-                });
+                return consumed
+                    .parse()
+                    .ok()
+                    .and_then(|consumed| {
+                        budget.parse().ok().map(|budget| {
+                            RawLog::Cu(RawCuLog {
+                                raw: log,
+                                program_id,
+                                consumed,
+                                budget,
+                            })
+                        })
+                    })
+                    .unwrap_or(RawLog::Other(RawOtherLog { raw: log }));
             }
         }
 
         RawLog::Other(RawOtherLog { raw: log })
     }
+}
+
+pub fn quick_pubkey_check(pubkey: &str) -> bool {
+    (pubkey.len() >= 32 || pubkey.len() <= 44)
+        && pubkey
+            .chars()
+            .all(|c| "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".contains(c))
 }
 
 /// A Raw Invoke Log
@@ -163,8 +182,8 @@ pub struct RawReturnLog<'a> {
 pub struct RawCuLog<'a> {
     pub raw: &'a str,
     pub program_id: &'a str,
-    pub consumed: &'a str,
-    pub budget: &'a str,
+    pub consumed: u64,
+    pub budget: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
