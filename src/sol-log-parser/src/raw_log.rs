@@ -8,7 +8,7 @@ pub enum RawLog<'a> {
     Data(RawDataLog<'a>),
     Return(RawReturnLog<'a>),
     Cu(RawCuLog<'a>),
-    Other(&'a str),
+    Other(RawOtherLog<'a>),
 }
 
 impl<'a> RawLog<'a> {
@@ -31,7 +31,7 @@ impl<'a> RawLog<'a> {
 
         if let Some(rest) = trimmed.strip_prefix("Program return: ") {
             let Some((program_id, data)) = rest.split_once(' ') else {
-                return RawLog::Other(log);
+                return RawLog::Other(RawOtherLog { raw: log });
             };
 
             return RawLog::Return(RawReturnLog {
@@ -43,7 +43,7 @@ impl<'a> RawLog<'a> {
 
         if let Some(rest) = trimmed.strip_prefix("Program ") {
             let Some((program_id, suffix)) = rest.split_once(' ') else {
-                return RawLog::Other(log);
+                return RawLog::Other(RawOtherLog { raw: log });
             };
 
             if let Some(depth) = suffix
@@ -60,7 +60,7 @@ impl<'a> RawLog<'a> {
                             depth,
                         })
                     })
-                    .unwrap_or_else(|| RawLog::Other(log));
+                    .unwrap_or_else(|| RawLog::Other(RawOtherLog { raw: log }));
             }
 
             if suffix == "success" {
@@ -83,7 +83,7 @@ impl<'a> RawLog<'a> {
                 .and_then(|s| s.split_once(" of "))
             {
                 let Some(budget) = of_budget.strip_suffix(" compute units") else {
-                    return RawLog::Other(log);
+                    return RawLog::Other(RawOtherLog { raw: log });
                 };
 
                 return RawLog::Cu(RawCuLog {
@@ -95,7 +95,7 @@ impl<'a> RawLog<'a> {
             }
         }
 
-        RawLog::Other(log)
+        RawLog::Other(RawOtherLog { raw: log })
     }
 }
 
@@ -167,82 +167,84 @@ pub struct RawCuLog<'a> {
     pub budget: &'a str,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawOtherLog<'a> {
+    pub raw: &'a str,
+}
+
 /* *************************************************************************** *
  *     HELPER CODE
  * *************************************************************************** */
 
 mod helper_code {
-    use crate::structured_log::{FailedLog, InvokeLog, Log, Log2, ReturnLog, SuccessLog};
+    use crate::structured_log::{FailedLog, InvokeLog, Log, ReturnLog, SuccessLog};
 
     use super::{
-        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawProgramLog, RawReturnLog,
+        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawOtherLog, RawProgramLog, RawReturnLog,
         RawSuccessLog,
     };
 
-    type Log2Helper<'a> = Log2<
-        RawInvokeLog<'a>,
-        RawSuccessLog<'a>,
-        RawFailedLog<'a>,
-        RawProgramLog<'a>,
-        RawDataLog<'a>,
-        RawReturnLog<'a>,
-        RawCuLog<'a>,
-        &'a str,
-    >;
-
     impl<'a> Log for RawInvokeLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Invoke(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawSuccessLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Success(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawFailedLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Failed(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawProgramLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Log(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawDataLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Data(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawReturnLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Return(self.clone()).into()
+            self.raw
         }
     }
 
     impl<'a> Log for RawCuLog<'a> {
-        type RawLog = Log2Helper<'a>;
+        type RawLog = &'a str;
 
         fn raw_log(&self) -> Self::RawLog {
-            RawLog::Cu(self.clone()).into()
+            self.raw
+        }
+    }
+
+    impl<'a> Log for RawOtherLog<'a> {
+        type RawLog = &'a str;
+
+        fn raw_log(&self) -> Self::RawLog {
+            self.raw
         }
     }
 

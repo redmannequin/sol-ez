@@ -18,7 +18,7 @@ pub struct RawStructuredLog<'a> {
     pub return_data: Option<&'a str>,
     pub compute_log: Option<RawCuLog<'a>>,
     pub cpi_logs: Vec<RawStructuredLog<'a>>,
-    pub raw_logs: Vec<RawLog<'a>>,
+    pub raw_logs: Vec<&'a str>,
 }
 
 impl<'a> RawStructuredLog<'a> {
@@ -35,11 +35,8 @@ impl<'a> RawStructuredLog<'a> {
 
 mod helper_code {
     use crate::{
-        raw_log::{
-            RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawProgramLog, RawReturnLog,
-            RawSuccessLog,
-        },
-        structured_log::{Log2, ProgramResult, StructuredLog},
+        raw_log::{RawCuLog, RawDataLog, RawProgramLog},
+        structured_log::{ProgramResult, StructuredLog},
     };
 
     use super::{RawProgramResult, RawStructuredLog};
@@ -58,20 +55,7 @@ mod helper_code {
                 return_data: value.return_data,
                 compute_log: value.compute_log,
                 cpi_logs: value.cpi_logs.into_iter().map(Self::from).collect(),
-                raw_logs: value
-                    .raw_logs
-                    .into_iter()
-                    .map(|log| match log {
-                        Log2::Invoke(log) => RawLog::Invoke(log),
-                        Log2::Success(log) => RawLog::Success(log),
-                        Log2::Failed(log) => RawLog::Failed(log),
-                        Log2::Log(log) => RawLog::Log(log),
-                        Log2::Data(log) => RawLog::Data(log),
-                        Log2::Return(log) => RawLog::Return(log),
-                        Log2::Cu(log) => RawLog::Cu(log),
-                        Log2::Other(log) => RawLog::Other(log),
-                    })
-                    .collect(),
+                raw_logs: value.raw_logs,
             }
         }
     }
@@ -83,15 +67,6 @@ mod helper_code {
         RawDataLog<'a>,
         &'a str,
         RawCuLog<'a>,
-        Log2<
-            RawInvokeLog<'a>,
-            RawSuccessLog<'a>,
-            RawFailedLog<'a>,
-            RawProgramLog<'a>,
-            RawDataLog<'a>,
-            RawReturnLog<'a>,
-            RawCuLog<'a>,
-            &'a str,
-        >,
+        &'a str,
     >;
 }
