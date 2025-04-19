@@ -1,3 +1,5 @@
+use crate::quick_pubkey_check;
+
 /// A Raw Log
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RawLog<'a> {
@@ -64,7 +66,7 @@ impl<'a> RawLog<'a> {
                             depth,
                         })
                     })
-                    .unwrap_or_else(|| RawLog::Other(RawOtherLog { raw: log }));
+                    .unwrap_or(RawLog::Other(RawOtherLog { raw: log }));
             }
 
             if suffix == "success" {
@@ -109,13 +111,6 @@ impl<'a> RawLog<'a> {
 
         RawLog::Other(RawOtherLog { raw: log })
     }
-}
-
-pub fn quick_pubkey_check(pubkey: &str) -> bool {
-    (pubkey.len() >= 32 || pubkey.len() <= 44)
-        && pubkey
-            .chars()
-            .all(|c| "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".contains(c))
 }
 
 /// A Raw Invoke Log
@@ -196,7 +191,9 @@ pub struct RawOtherLog<'a> {
  * *************************************************************************** */
 
 mod helper_code {
-    use crate::structured_log::{FailedLog, InvokeLog, Log, ReturnLog, SuccessLog};
+    use crate::structured_log::{
+        ComputeUnitsLog, FailedLog, InvokeLog, Log, ReturnLog, SuccessLog,
+    };
 
     use super::{
         RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawOtherLog, RawProgramLog, RawReturnLog,
@@ -310,6 +307,14 @@ mod helper_code {
 
         fn data(&self) -> Self::Data {
             self.data
+        }
+    }
+
+    impl<'a> ComputeUnitsLog for RawCuLog<'a> {
+        type ProgramId = &'a str;
+
+        fn program_id(&self) -> Self::ProgramId {
+            self.program_id
         }
     }
 }

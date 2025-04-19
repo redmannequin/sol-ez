@@ -1,8 +1,8 @@
 use solana_pubkey::Pubkey;
 
-use crate::parsed_log::{ParsedCuLog, ParsedDataLog, ParsedLog, ParsedProgramLog};
+use crate::parsed_log::{ParsedDataLog, ParsedLog, ParsedProgramLog};
 
-use super::Log2;
+use super::{ComputeUnits, Log2};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedStructuredLog {
@@ -12,7 +12,7 @@ pub struct ParsedStructuredLog {
     pub program_logs: Vec<ParsedProgramLog>,
     pub data_logs: Vec<ParsedDataLog>,
     pub return_data: Option<Vec<u8>>,
-    pub compute_log: Option<ParsedCuLog>,
+    pub compute_log: Option<ComputeUnits>,
     pub cpi_logs: Vec<Self>,
     pub raw_logs: Vec<String>,
 }
@@ -39,7 +39,7 @@ mod helper_code {
     use solana_pubkey::Pubkey;
 
     use crate::{
-        parsed_log::{ParsedCuLog, ParsedDataLog, ParsedProgramLog},
+        parsed_log::{ParsedDataLog, ParsedProgramLog},
         structured_log::{ProgramResult, StructuredLog},
     };
 
@@ -70,7 +70,6 @@ mod helper_code {
         ParsedProgramLog,
         ParsedDataLog,
         Vec<u8>,
-        ParsedCuLog,
         String,
     >;
 }

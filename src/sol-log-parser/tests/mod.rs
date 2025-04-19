@@ -5,7 +5,7 @@ use sol_log_parser::{
         ParsedSuccessLog,
     },
     raw_log::{RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawProgramLog, RawSuccessLog},
-    structured_log::parsed::ParsedProgramResult,
+    structured_log::{parsed::ParsedProgramResult, ComputeUnits},
     LogParseError, ParsedLog, ParsedStructuredLog, RawLog,
 };
 use solana_pubkey::Pubkey;
@@ -195,9 +195,7 @@ fn structured_log() {
             program_logs: vec![],
             data_logs: vec![],
             return_data: None,
-            compute_log: Some(ParsedCuLog {
-                raw: "Program D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns consumed 8388 of 1400000 compute units".into(),
-                program_id: Pubkey::from_str_const("D4SghRBTyA7HQSEH89uT9LgCs1TTtrPptwuqm1sLSsns"),
+            compute_log: Some(ComputeUnits  {
                 consumed: 8388,
                 budget: 1400000
             }),
@@ -211,9 +209,7 @@ fn structured_log() {
                 }],
                 data_logs: vec![],
                 return_data: None,
-                compute_log: Some(ParsedCuLog {
-                    raw: "Program 11111111111111111111111111111111 consumed 4731 of 1396590 compute units".into(),
-                    program_id: Pubkey::from_str_const("11111111111111111111111111111111"),
+                compute_log: Some(ComputeUnits {
                     consumed: 4731,
                     budget: 1396590
                 }),

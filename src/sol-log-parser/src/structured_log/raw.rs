@@ -1,14 +1,9 @@
-use crate::raw_log::{RawCuLog, RawDataLog, RawLog, RawProgramLog};
+use crate::raw_log::{RawDataLog, RawLog, RawProgramLog};
 
-use super::Log2;
-
-/// A Raw Program Result
-pub enum RawProgramResult<'a> {
-    Success,
-    Err(&'a str),
-}
+use super::{ComputeUnits, Log2};
 
 /// A Raw Structured Log
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawStructuredLog<'a> {
     pub program_id: &'a str,
     pub depth: u8,
@@ -16,7 +11,7 @@ pub struct RawStructuredLog<'a> {
     pub program_logs: Vec<RawProgramLog<'a>>,
     pub data_logs: Vec<RawDataLog<'a>>,
     pub return_data: Option<&'a str>,
-    pub compute_log: Option<RawCuLog<'a>>,
+    pub compute_log: Option<ComputeUnits>,
     pub cpi_logs: Vec<RawStructuredLog<'a>>,
     pub raw_logs: Vec<&'a str>,
 }
@@ -29,13 +24,20 @@ impl<'a> RawStructuredLog<'a> {
     }
 }
 
+/// A Raw Program Result
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RawProgramResult<'a> {
+    Success,
+    Err(&'a str),
+}
+
 /* *************************************************************************** *
  *  HELPER CODE
  * *************************************************************************** */
 
 mod helper_code {
     use crate::{
-        raw_log::{RawCuLog, RawDataLog, RawProgramLog},
+        raw_log::{RawDataLog, RawProgramLog},
         structured_log::{ProgramResult, StructuredLog},
     };
 
@@ -66,7 +68,6 @@ mod helper_code {
         RawProgramLog<'a>,
         RawDataLog<'a>,
         &'a str,
-        RawCuLog<'a>,
         &'a str,
     >;
 }

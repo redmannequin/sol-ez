@@ -236,7 +236,9 @@ impl ParsedOtherLog {
 mod helper_code {
     use solana_pubkey::Pubkey;
 
-    use crate::structured_log::{FailedLog, InvokeLog, Log, ReturnLog, SuccessLog};
+    use crate::structured_log::{
+        ComputeUnitsLog, FailedLog, InvokeLog, Log, ReturnLog, SuccessLog,
+    };
 
     use super::{
         ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedOtherLog,
@@ -350,6 +352,14 @@ mod helper_code {
 
         fn data(&self) -> Self::Data {
             self.data.clone()
+        }
+    }
+
+    impl ComputeUnitsLog for ParsedCuLog {
+        type ProgramId = Pubkey;
+
+        fn program_id(&self) -> Self::ProgramId {
+            self.program_id
         }
     }
 }
