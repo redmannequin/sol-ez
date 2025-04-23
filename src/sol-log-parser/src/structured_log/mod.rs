@@ -2,17 +2,41 @@ use std::fmt::{Debug, Display};
 
 use crate::{
     parsed_log::{
-        ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedLog, ParsedProgramLog,
-        ParsedReturnLog, ParsedSuccessLog,
+        ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedLog, ParsedOtherLog,
+        ParsedProgramLog, ParsedReturnLog, ParsedSuccessLog,
     },
     raw_log::{
-        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawProgramLog, RawReturnLog,
-        RawSuccessLog,
+        RawCuLog, RawDataLog, RawFailedLog, RawInvokeLog, RawLog, RawOtherLog, RawProgramLog,
+        RawReturnLog, RawSuccessLog,
     },
 };
 
 pub mod parsed;
 pub mod raw;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComputeUnits {
+    pub consumed: u64,
+    pub budget: u64,
+}
+
+impl<'a> From<RawCuLog<'a>> for ComputeUnits {
+    fn from(value: RawCuLog) -> Self {
+        ComputeUnits {
+            consumed: value.consumed,
+            budget: value.budget,
+        }
+    }
+}
+
+impl From<ParsedCuLog> for ComputeUnits {
+    fn from(value: ParsedCuLog) -> Self {
+        ComputeUnits {
+            consumed: value.consumed,
+            budget: value.budget,
+        }
+    }
+}
 
 /// A generic structured representation of a program execution log.
 ///
@@ -34,41 +58,36 @@ pub mod raw;
 /// - `ReturnData`: The type for return data emitted at the end of program execution
 /// - `ComputeLog`: The type for compute unit logs
 /// - `RawLog`: The type for raw log entries that this structured log was derived from
-struct StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog> {
+struct StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog> {
     pub program_id: Id,
     pub depth: u8,
     pub result: ProgramResult,
     pub program_logs: Vec<ProgramLog>,
     pub data_logs: Vec<DataLog>,
     pub return_data: Option<ReturnData>,
-    pub compute_log: Option<ComputeLog>,
+    pub compute_log: Option<ComputeUnits>,
     pub cpi_logs: Vec<Self>,
     pub raw_logs: Vec<RawLog>,
 }
 
-impl<Id, Invoke, Success, Failed, Program, Data, Return, ReturnData, Compute, Other, Err>
-    StructuredLog<
-        Id,
-        ProgramResult<Err>,
-        Program,
-        Data,
-        ReturnData,
-        Compute,
-        Log2<Invoke, Success, Failed, Program, Data, Return, Compute, Other>,
-    >
+impl<Id, Program, Data, ReturnData, Err, RawLog>
+    StructuredLog<Id, ProgramResult<Err>, Program, Data, ReturnData, RawLog>
 where
     Id: Eq + Debug + Display,
-    Invoke: InvokeLog<ProgramId = Id>,
-    Success: SuccessLog<ProgramId = Id>,
-    Failed: FailedLog<ProgramId = Id, Err = Err>,
-    Program: Log<RawLog = Log2<Invoke, Success, Failed, Program, Data, Return, Compute, Other>>,
-    Data: Log<RawLog = Log2<Invoke, Success, Failed, Program, Data, Return, Compute, Other>>,
-    Return: ReturnLog<ProgramId = Id, Data = ReturnData>,
-    Compute: Log<RawLog = Log2<Invoke, Success, Failed, Program, Data, Return, Compute, Other>>,
+    Program: Log<RawLog = RawLog>,
+    Data: Log<RawLog = RawLog>,
 {
-    pub fn from_logs(
+    pub fn from_logs<Invoke, Success, Failed, Return, Compute, Other>(
         logs: Vec<Log2<Invoke, Success, Failed, Program, Data, Return, Compute, Other>>,
-    ) -> Vec<Self> {
+    ) -> Vec<Self>
+    where
+        Invoke: Log<RawLog = RawLog> + InvokeLog<ProgramId = Id>,
+        Success: Log<RawLog = RawLog> + SuccessLog<ProgramId = Id>,
+        Failed: Log<RawLog = RawLog> + FailedLog<ProgramId = Id, Err = Err>,
+        Return: Log<RawLog = RawLog> + ReturnLog<ProgramId = Id, Data = ReturnData>,
+        Compute: Log<RawLog = RawLog> + ComputeUnitsLog<ProgramId = Id> + Into<ComputeUnits>,
+        Other: Log<RawLog = RawLog>,
+    {
         let mut stack = Vec::new();
         let mut completed = Vec::new();
 
@@ -78,7 +97,7 @@ where
                     stack.push(FrameBuilder::new(
                         log.program_id(),
                         log.depth(),
-                        Log2::Invoke(log),
+                        log.raw_log(),
                     ));
                 }
                 Log2::Success(log) => {
@@ -92,7 +111,7 @@ where
                         builder.program_id,
                         log.program_id()
                     );
-                    let structured = builder.finalize(ProgramResult::Success, Log2::Success(log));
+                    let structured = builder.finalize(ProgramResult::Success, log.raw_log());
 
                     if let Some(parent) = stack.last_mut() {
                         parent.cpi_logs.push(structured);
@@ -111,8 +130,7 @@ where
                         builder.program_id,
                         log.program_id()
                     );
-                    let structured =
-                        builder.finalize(ProgramResult::Err(log.err()), Log2::Failed(log));
+                    let structured = builder.finalize(ProgramResult::Err(log.err()), log.raw_log());
 
                     if let Some(parent) = stack.last_mut() {
                         parent.cpi_logs.push(structured);
@@ -132,17 +150,25 @@ where
                 }
                 Log2::Return(log) => {
                     if let Some(top) = stack.last_mut() {
-                        top.set_return_data(log.program_id(), log.data(), Log2::Return(log));
+                        if top.program_id == log.program_id() {
+                            top.set_return_data(log.data(), log.raw_log());
+                        } else {
+                            top.push_raw(log.raw_log());
+                        }
                     }
                 }
                 Log2::Cu(log) => {
                     if let Some(top) = stack.last_mut() {
-                        top.set_compute_log(log);
+                        if top.program_id == log.program_id() {
+                            top.set_compute_log(log);
+                        } else {
+                            top.push_raw(log.raw_log());
+                        }
                     }
                 }
-                raw @ Log2::Other(_) => {
+                Log2::Other(log) => {
                     if let Some(top) = stack.last_mut() {
-                        top.push_raw(raw);
+                        top.push_raw(log.raw_log());
                     }
                 }
             }
@@ -182,7 +208,7 @@ impl<'a> From<RawLog<'a>>
         RawDataLog<'a>,
         RawReturnLog<'a>,
         RawCuLog<'a>,
-        &'a str,
+        RawOtherLog<'a>,
     >
 {
     fn from(value: RawLog<'a>) -> Self {
@@ -208,7 +234,7 @@ impl From<ParsedLog>
         ParsedDataLog,
         ParsedReturnLog,
         ParsedCuLog,
-        String,
+        ParsedOtherLog,
     >
 {
     fn from(value: ParsedLog) -> Self {
@@ -260,25 +286,29 @@ pub(crate) trait ReturnLog {
     fn data(&self) -> Self::Data;
 }
 
-struct FrameBuilder<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog> {
+pub(crate) trait ComputeUnitsLog {
+    type ProgramId;
+
+    fn program_id(&self) -> Self::ProgramId;
+}
+
+struct FrameBuilder<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog> {
     program_id: Id,
     depth: u8,
     program_logs: Vec<ProgramLog>,
     data_logs: Vec<DataLog>,
     return_data: Option<ReturnData>,
-    compute_log: Option<ComputeLog>,
+    compute_log: Option<ComputeUnits>,
     raw_logs: Vec<RawLog>,
-    cpi_logs:
-        Vec<StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog>>,
+    cpi_logs: Vec<StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog>>,
 }
 
-impl<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog>
-    FrameBuilder<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog>
+impl<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog>
+    FrameBuilder<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog>
 where
     Id: Eq + Debug + Display,
     ProgramLog: Log<RawLog = RawLog>,
     DataLog: Log<RawLog = RawLog>,
-    ComputeLog: Log<RawLog = RawLog>,
 {
     fn new(program_id: Id, depth: u8, raw: RawLog) -> Self {
         Self {
@@ -307,26 +337,24 @@ where
         self.raw_logs.push(raw);
     }
 
-    fn set_return_data(&mut self, program_id: Id, data: ReturnData, raw: RawLog) {
-        assert_eq!(
-            self.program_id, program_id,
-            "Return program ID mismatch: expected {}, got {}",
-            self.program_id, program_id
-        );
+    fn set_return_data(&mut self, data: ReturnData, raw: RawLog) {
         self.raw_logs.push(raw);
         self.return_data = Some(data);
     }
 
-    fn set_compute_log(&mut self, log: ComputeLog) {
+    fn set_compute_log<ComputeLog>(&mut self, log: ComputeLog)
+    where
+        ComputeLog: Log<RawLog = RawLog> + Into<ComputeUnits>,
+    {
         self.raw_logs.push(log.raw_log());
-        self.compute_log = Some(log);
+        self.compute_log = Some(log.into());
     }
 
     fn finalize(
         mut self,
         result: ProgramResult,
         final_raw: RawLog,
-    ) -> StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, ComputeLog, RawLog> {
+    ) -> StructuredLog<Id, ProgramResult, ProgramLog, DataLog, ReturnData, RawLog> {
         self.raw_logs.push(final_raw);
         self.raw_logs.shrink_to_fit();
         self.cpi_logs.shrink_to_fit();

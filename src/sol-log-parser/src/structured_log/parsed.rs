@@ -1,8 +1,8 @@
 use solana_pubkey::Pubkey;
 
-use crate::parsed_log::{ParsedCuLog, ParsedDataLog, ParsedLog, ParsedProgramLog};
+use crate::parsed_log::{ParsedDataLog, ParsedLog, ParsedProgramLog};
 
-use super::Log2;
+use super::{ComputeUnits, Log2};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedStructuredLog {
@@ -12,9 +12,9 @@ pub struct ParsedStructuredLog {
     pub program_logs: Vec<ParsedProgramLog>,
     pub data_logs: Vec<ParsedDataLog>,
     pub return_data: Option<Vec<u8>>,
-    pub compute_log: Option<ParsedCuLog>,
+    pub compute_log: Option<ComputeUnits>,
     pub cpi_logs: Vec<Self>,
-    pub raw_logs: Vec<ParsedLog>,
+    pub raw_logs: Vec<String>,
 }
 
 impl ParsedStructuredLog {
@@ -39,11 +39,8 @@ mod helper_code {
     use solana_pubkey::Pubkey;
 
     use crate::{
-        parsed_log::{
-            ParsedCuLog, ParsedDataLog, ParsedFailedLog, ParsedInvokeLog, ParsedLog,
-            ParsedProgramLog, ParsedReturnLog, ParsedSuccessLog,
-        },
-        structured_log::{Log2, ProgramResult, StructuredLog},
+        parsed_log::{ParsedDataLog, ParsedProgramLog},
+        structured_log::{ProgramResult, StructuredLog},
     };
 
     use super::{ParsedProgramResult, ParsedStructuredLog};
@@ -62,20 +59,7 @@ mod helper_code {
                 return_data: value.return_data,
                 compute_log: value.compute_log,
                 cpi_logs: value.cpi_logs.into_iter().map(Self::from).collect(),
-                raw_logs: value
-                    .raw_logs
-                    .into_iter()
-                    .map(|log| match log {
-                        Log2::Invoke(log) => ParsedLog::Invoke(log),
-                        Log2::Success(log) => ParsedLog::Success(log),
-                        Log2::Failed(log) => ParsedLog::Failed(log),
-                        Log2::Log(log) => ParsedLog::Log(log),
-                        Log2::Data(log) => ParsedLog::Data(log),
-                        Log2::Return(log) => ParsedLog::Return(log),
-                        Log2::Cu(log) => ParsedLog::Cu(log),
-                        Log2::Other(log) => ParsedLog::Other(log),
-                    })
-                    .collect(),
+                raw_logs: value.raw_logs,
             }
         }
     }
@@ -86,16 +70,6 @@ mod helper_code {
         ParsedProgramLog,
         ParsedDataLog,
         Vec<u8>,
-        ParsedCuLog,
-        Log2<
-            ParsedInvokeLog,
-            ParsedSuccessLog,
-            ParsedFailedLog,
-            ParsedProgramLog,
-            ParsedDataLog,
-            ParsedReturnLog,
-            ParsedCuLog,
-            String,
-        >,
+        String,
     >;
 }
